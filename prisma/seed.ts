@@ -5,7 +5,7 @@
 import { PrismaClient } from "@prisma/client";
 import { runImport } from "../scripts/import-content";
 
-const db = new PrismaClient();
+const db = new PrismaClient({ transactionOptions: { timeout: 60_000, maxWait: 10_000 } });
 runImport(db, process.argv.includes("--force"))
   .catch((e) => {
     console.error(e);

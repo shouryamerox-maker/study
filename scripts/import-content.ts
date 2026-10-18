@@ -46,7 +46,7 @@ export async function runImport(db: PrismaClient, force: boolean) {
 }
 
 if (process.argv[1]?.includes("import-content")) {
-  const db = new PrismaClient();
+  const db = new PrismaClient({ transactionOptions: { timeout: 60_000, maxWait: 10_000 } });
   runImport(db, process.argv.includes("--force"))
     .catch((e) => {
       console.error(e);
