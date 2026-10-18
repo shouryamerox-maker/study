@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 
 export function cn(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -35,19 +35,31 @@ export function LinkButton({ variant = "primary", size = "md", className, ...p }
 
 /* ── Layout ──────────────────────────────────────────────────────────── */
 
+/** Visible "← Back to …" control pointing at the logical parent page. */
+export function BackLink({ href, label, className }: { href: string; label: string; className?: string }) {
+  return (
+    <Link href={href} className={cn("mb-2 inline-flex items-center gap-1.5 rounded-[6px] text-[13px] font-medium text-muted hover:text-primary", className)}>
+      <ArrowLeft size={14} aria-hidden /> {label}
+    </Link>
+  );
+}
+
 export function PageHeader({
   title,
   description,
   crumbs,
   actions,
+  back,
 }: {
   title: ReactNode;
   description?: ReactNode;
   crumbs?: { href?: string; label: string }[];
   actions?: ReactNode;
+  back?: { href: string; label: string };
 }) {
   return (
     <div className="mb-5">
+      {back && <BackLink href={back.href} label={back.label} className="block w-fit" />}
       {crumbs && crumbs.length > 0 && (
         <nav aria-label="Breadcrumb" className="mb-1.5 flex flex-wrap items-center gap-1 text-[12.5px] text-muted">
           {crumbs.map((c, i) => (

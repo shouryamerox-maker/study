@@ -21,7 +21,7 @@ export default async function EditTestPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <PageHeader
-        crumbs={[{ href: "/teacher/tests", label: "Tests & Assessments" }, { label: a.title }]}
+        back={{ href: "/teacher/tests", label: "Back to tests" }}
         title={a.title}
         actions={
           <LinkButton href={`/teacher/tests/${id}/results`} variant="secondary" size="sm">

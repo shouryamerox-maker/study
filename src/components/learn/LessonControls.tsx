@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Bookmark, BookmarkCheck, CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
 import { Button, cn, fmtRelative } from "@/components/ui";
 import { apiFetch, ClientApiError } from "@/lib/client-api";
@@ -86,6 +86,7 @@ export function NotesPanel({ lessonId, initial }: { lessonId: string; initial: N
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const storageKey = `sl:note-draft:${lessonId}`;
+  const noteId = useId();
 
   useEffect(() => {
     try {
@@ -139,11 +140,11 @@ export function NotesPanel({ lessonId, initial }: { lessonId: string; initial: N
   return (
     <div className="space-y-3">
       <div>
-        <label htmlFor="new-note" className="sr-only">
+        <label htmlFor={noteId} className="sr-only">
           New note
         </label>
         <textarea
-          id="new-note"
+          id={noteId}
           rows={3}
           className="input text-[13.5px]"
           placeholder="Write a private note for this lesson…"

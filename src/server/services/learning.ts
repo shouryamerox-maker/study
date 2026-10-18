@@ -95,6 +95,45 @@ export function computeCourseProgress(tree: CourseTree, progress: Awaited<Return
   };
 }
 
+/**
+ * Where to continue inside one course: the most recently opened unfinished lesson,
+ * otherwise the first lesson not yet completed. Null when everything is complete.
+ */
+export function courseContinueLesson(tree: CourseTree, progress: Awaited<ReturnType<typeof progressMap>>) {
+  const list = orderedLessons(tree);
+  const inProgress = list
+    .filter((l) => progress.get(l.id)?.status === "IN_PROGRESS")
+    .sort((a, b) => progress.get(b.id)!.lastViewedAt.getTime() - progress.get(a.id)!.lastViewedAt.getTime())[0];
+  const next = inProgress ?? list.find((l) => progress.get(l.id)?.status !== "COMPLETED");
+  return next ? { ...next, resume: !!inProgress, started: progress.size > 0 } : null;
+}
+
+/** Serializable outline for the syllabus view (no lesson bodies). */
+export function buildOutline(tree: CourseTree, computed: ReturnType<typeof computeCourseProgress> | null, progress: Awaited<ReturnType<typeof progressMap>> | null) {
+  let n = 0;
+  return tree.units.map((u) => ({
+    id: u.id,
+    title: u.title,
+    chapters: u.chapters.map((c) => {
+      const p = computed?.chapters.get(c.id);
+      return {
+        id: c.id,
+        number: ++n,
+        title: c.title,
+        summary: c.summary,
+        state: p?.state ?? null,
+        done: p?.done ?? 0,
+        total: p?.total ?? c.topics.reduce((s, t) => s + t.lessons.length, 0),
+        covered: !!c.coveredInClassAt,
+        files: c.files.map((f) => ({ id: f.id, title: f.title, url: f.url })),
+        lessons: c.topics.flatMap((t) =>
+          t.lessons.map((l) => ({ id: l.id, slug: l.slug, title: l.title, estMinutes: l.estMinutes, published: l.published, status: progress?.get(l.id)?.status ?? null })),
+        ),
+      };
+    }),
+  }));
+}
+
 export async function isLessonLocked(userId: string, lesson: { chapterId: string; courseId: string }) {
   const chapter = await db.chapter.findUniqueOrThrow({ where: { id: lesson.chapterId }, include: { course: true } });
   if (!chapter.isAvailable || (chapter.availableFrom && chapter.availableFrom > new Date())) return true;
@@ -144,7 +183,7 @@ export async function continueLearning(userId: string) {
   const last = await db.lessonProgress.findFirst({
     where: { userId, lesson: { published: true } },
     orderBy: { lastViewedAt: "desc" },
-    include: { lesson: { select: { id: true, slug: true, title: true, courseId: true, chapter: { select: { title: true } }, course: { select: { slug: true, title: true } } } } },
+    include: { lesson: { select: { id: true, slug: true, title: true, courseId: true, chapterId: true, chapter: { select: { title: true } }, course: { select: { slug: true, title: true } } } } },
   });
   if (!last) return null;
   if (last.status === "IN_PROGRESS") return { lesson: last.lesson, reason: "resume" as const };
@@ -157,7 +196,7 @@ export async function continueLearning(userId: string) {
   const next = list.slice(idx + 1).find((l) => progress.get(l.id)?.status !== "COMPLETED") ?? list.find((l) => progress.get(l.id)?.status !== "COMPLETED");
   if (!next) return { lesson: last.lesson, reason: "course_complete" as const };
   return {
-    lesson: { id: next.id, slug: next.slug, title: next.title, courseId: tree.id, chapter: { title: next.chapterTitle }, course: { slug: tree.slug, title: tree.title } },
+    lesson: { id: next.id, slug: next.slug, title: next.title, courseId: tree.id, chapterId: next.chapterId, chapter: { title: next.chapterTitle }, course: { slug: tree.slug, title: tree.title } },
     reason: "next" as const,
   };
 }
@@ -173,11 +212,11 @@ export async function practiceStats(userId: string) {
   // Latest attempt per question decides whether it is currently "correct".
   const latest = new Map<string, (typeof attempts)[number]>();
   for (const a of attempts) latest.set(a.questionId, a);
-  const byChapter = new Map<string, { title: string; slug: string; attempted: number; correct: number }>();
+  const byChapter = new Map<string, { id: string; title: string; slug: string; attempted: number; correct: number }>();
   for (const a of latest.values()) {
     const ch = a.question.chapter;
     if (!ch || !a.question.chapterId) continue;
-    const e = byChapter.get(a.question.chapterId) ?? { title: ch.title, slug: ch.slug, attempted: 0, correct: 0 };
+    const e = byChapter.get(a.question.chapterId) ?? { id: a.question.chapterId, title: ch.title, slug: ch.slug, attempted: 0, correct: 0 };
     e.attempted++;
     if (a.isCorrect) e.correct++;
     byChapter.set(a.question.chapterId, e);

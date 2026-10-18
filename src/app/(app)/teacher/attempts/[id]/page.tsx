@@ -7,20 +7,27 @@ import { ReviewWorkspace } from "@/components/teacher/ReviewWorkspace";
 
 export const metadata = { title: "Review attempt" };
 
-export default async function AttemptReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ q?: string }> }) {
+export default async function AttemptReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ q?: string; from?: string }> }) {
   await requirePageStaff();
   const { id } = await params;
-  const { q } = await searchParams;
+  const { q, from } = await searchParams;
   const data = await attemptReview(id);
   if (!data) notFound();
   const { attempt } = data;
+  const back =
+    from === "student"
+      ? { href: `/teacher/students/${attempt.user.id}?tab=tests`, label: `Back to ${attempt.user.name}` }
+      : from === "results"
+        ? { href: `/teacher/tests/${attempt.assessment.id}/results`, label: "Back to test results" }
+        : { href: "/teacher/grading", label: "Back to grading queue" };
   return (
     <>
       <PageHeader
+        back={back}
         crumbs={[
-          { href: "/teacher/grading", label: "Submissions & Grading" },
+          { href: `/teacher/students/${attempt.user.id}`, label: attempt.user.name },
           { href: `/teacher/tests/${attempt.assessment.id}/results`, label: attempt.assessment.title },
-          { label: `${attempt.user.name} · attempt ${attempt.attemptNumber}` },
+          { label: `Attempt ${attempt.attemptNumber}` },
         ]}
         title={`${attempt.user.name} — ${attempt.assessment.title}`}
       />

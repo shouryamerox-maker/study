@@ -1,7 +1,8 @@
 import { requirePageStaff } from "@/server/auth/guards";
 import Link from "next/link";
 import { db } from "@/server/db";
-import { Badge, Card, CardHeader, PageHeader } from "@/components/ui";
+import { Badge, Card, PageHeader } from "@/components/ui";
+import { Disclosure } from "@/components/Disclosure";
 import { CourseCreate } from "@/components/teacher/CourseCreate";
 
 export const metadata = { title: "Courses & Syllabus" };
@@ -45,10 +46,14 @@ export default async function TeacherCourses() {
         ))}
       </div>
       <Card>
-        <CardHeader title="New course" description="Add Physics, Biology, C++ or any other subject. Courses start unpublished." />
-        <div className="p-4">
+        <Disclosure
+          title={<span className="font-semibold">+ Add a new course</span>}
+          meta={<span className="hidden text-[12px] text-faint sm:inline">Physics, Biology, C++… · starts unpublished</span>}
+          buttonClassName="px-4 py-3"
+          panelClassName="border-t border-divider p-4"
+        >
           <CourseCreate subjects={subjects.map((s) => ({ id: s.id, name: s.name }))} />
-        </div>
+        </Disclosure>
       </Card>
     </>
   );

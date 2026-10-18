@@ -51,7 +51,7 @@ export default async function TestResults({ params }: { params: Promise<{ id: st
   return (
     <>
       <PageHeader
-        crumbs={[{ href: "/teacher/tests", label: "Tests & Assessments" }, { label: a.title }]}
+        back={{ href: "/teacher/tests", label: "Back to tests" }}
         title={a.title}
         description={`${a.course.title} · ${a.currentVersion ? `version ${a.currentVersion.version}, ${fmtMarks(a.currentVersion.totalMarks)} marks` : "not published"} · results ${released ? "released to students" : "not released"}`}
         actions={
@@ -134,7 +134,7 @@ export default async function TestResults({ params }: { params: Promise<{ id: st
                           {t.status === "IN_PROGRESS" ? "—" : `${fmtMarks(t.score)} / ${fmtMarks(t.maxScore)} (${percent(t.score ?? 0, t.maxScore)}%)`}
                         </td>
                         <td className="text-right">
-                          <LinkButton href={`/teacher/attempts/${t.id}`} size="sm" variant={t.gradingStatus === "PENDING_REVIEW" ? "primary" : "secondary"}>
+                          <LinkButton href={`/teacher/attempts/${t.id}?from=results`} size="sm" variant={t.gradingStatus === "PENDING_REVIEW" ? "primary" : "secondary"}>
                             {t.gradingStatus === "PENDING_REVIEW" ? "Grade" : "Open"}
                           </LinkButton>
                         </td>

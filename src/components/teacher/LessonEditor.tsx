@@ -6,6 +6,7 @@ import { Save } from "lucide-react";
 import { blocksSchema, type Block } from "@/lib/content/schema";
 import { Alert, Button, Card, CardHeader, Field, cn } from "@/components/ui";
 import { apiFetch, ClientApiError } from "@/lib/client-api";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { LessonBlocks } from "@/components/content/LessonBlocks";
 
 const TEMPLATES: Record<string, object> = {
@@ -38,6 +39,10 @@ export function LessonEditor({ lesson }: { lesson: { id: string; title: string; 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const snapshot = JSON.stringify([title, summary, est, published, json]);
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const dirty = snapshot !== savedSnapshot;
+  useUnsavedGuard(dirty);
 
   const parsed = useMemo((): { ok: true; blocks: Block[] } | { ok: false; error: string } => {
     let raw: unknown;
@@ -70,6 +75,7 @@ export function LessonEditor({ lesson }: { lesson: { id: string; title: string; 
     setMsg(null);
     try {
       const r = await apiFetch<{ version: number }>(`/api/v1/teacher/lessons/${lesson.id}`, { method: "PUT", body: { title, summary: summary || null, estMinutes: est, published, blocks: parsed.blocks } });
+      setSavedSnapshot(snapshot);
       setMsg({ tone: "success", text: `Saved (version ${r.version}). Student progress on this lesson is kept.` });
       router.refresh();
     } catch (e) {
@@ -129,7 +135,8 @@ export function LessonEditor({ lesson }: { lesson: { id: string; title: string; 
           <div className="px-5 py-6 sm:px-8">{parsed.ok ? <LessonBlocks blocks={parsed.blocks} lessonId={lesson.id} runnable={false} /> : <Alert tone="danger">Fix the errors to preview.</Alert>}</div>
         )}
       </Card>
-      <Button onClick={save} disabled={busy || !parsed.ok}>
+      {dirty && <span className="mr-3 text-[12.5px] text-pending">Unsaved changes</span>}
+      <Button onClick={save} disabled={busy || !parsed.ok || !dirty}>
         <Save size={14} /> {busy ? "Saving…" : "Save lesson"}
       </Button>
     </div>

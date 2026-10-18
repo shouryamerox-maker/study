@@ -34,7 +34,7 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
   if (!r.visible) {
     return (
       <>
-        <PageHeader crumbs={crumbs} title="Result not released yet" />
+        <PageHeader back={{ href: `/tests/${id}`, label: "Back to test" }} crumbs={crumbs} title="Result not released yet" />
         <Alert tone="pending">Your answers were submitted on {fmtDate(r.attempt.submittedAt, true)}. Your teacher has not released the results for this test yet.</Alert>
       </>
     );
@@ -46,7 +46,7 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
 
   return (
     <>
-      <PageHeader crumbs={crumbs} title={r.attempt.assessment.title} description={`Submitted ${fmtDate(r.attempt.submittedAt, true)}`} />
+      <PageHeader back={{ href: `/tests/${id}`, label: "Back to test" }} crumbs={crumbs} title={r.attempt.assessment.title} description={`Submitted ${fmtDate(r.attempt.submittedAt, true)}`} />
       {pending > 0 && (
         <Alert tone="pending" className="mb-4" title={`${pending} question${pending > 1 ? "s are" : " is"} still being marked`}>
           The score below is provisional and only includes marked questions.

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Clock, CloudOff, Flag, Loader2, Play, Send } from "lucide-react";
 import { Alert, Badge, Button, Card, cn, fmtMarks } from "@/components/ui";
+import { Disclosure } from "@/components/Disclosure";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { apiFetch, ClientApiError } from "@/lib/client-api";
 import { ClientCode, ClientMarkdown } from "@/components/content/ClientContent";
 import { OutputView } from "@/components/content/CodeView";
@@ -34,6 +36,8 @@ export interface RunnerProps {
   attemptId: string;
   title: string;
   totalMarks: number;
+  instructions: string | null;
+  durationMinutes: number | null;
   deadlineAt: string | null;
   serverTime: string;
   sections: Section[];
@@ -246,6 +250,21 @@ export function TestRunner(p: RunnerProps) {
     [flushAll, p.attemptId, p.assessmentId, backupKey, router, handleTerminal],
   );
 
+  const [exiting, setExiting] = useState(false);
+  /** Leaves the test without submitting, but only after every answer is confirmed saved. */
+  async function exit() {
+    setExiting(true);
+    setFatal(null);
+    const ok = await flushAll();
+    if (!ok) {
+      setExiting(false);
+      setFatal("Some answers have not been saved yet. Check your connection — stay on this page so nothing is lost.");
+      return;
+    }
+    finished.current = true;
+    router.push(`/tests/${p.assessmentId}`);
+  }
+
   // Auto-submit when the timer reaches zero.
   useEffect(() => {
     if (remaining === 0 && !finished.current && !submitting) void submit(true);
@@ -257,6 +276,7 @@ export function TestRunner(p: RunnerProps) {
   const reviewCount = questions.filter((x) => review[x.id]).length;
   const anyUnsaved = Object.values(saveState).some((s) => s === "dirty" || s === "saving" || s === "error");
   const anyError = Object.values(saveState).some((s) => s === "error");
+  useUnsavedGuard(anyUnsaved && !submitting && !exiting, "Some answers are still being saved. Leave anyway? Unsaved answers could be lost.");
 
   const timeStr = remaining == null ? null : `${Math.floor(remaining / 3600000) > 0 ? Math.floor(remaining / 3600000) + ":" : ""}${String(Math.floor((remaining % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0")}`;
   const lowTime = remaining != null && remaining < 5 * 60 * 1000;
@@ -299,10 +319,27 @@ export function TestRunner(p: RunnerProps) {
               <Clock size={14} /> {timeStr}
             </span>
           )}
+          <Button variant="ghost" onClick={exit} disabled={submitting || exiting} title="Your answers are saved; you can come back before the time runs out">
+            {exiting ? "Saving…" : "Save & exit"}
+          </Button>
           <Button onClick={() => setConfirming(true)} disabled={submitting}>
             <Send size={14} /> Submit
           </Button>
         </div>
+
+        {(p.instructions || p.durationMinutes) && (
+          <div className="mb-4 rounded-[10px] border border-border bg-surface">
+            <Disclosure
+              title={<span className="text-[13.5px] font-medium">Instructions</span>}
+              meta={<span className="text-[12px] text-muted">{fmtMarks(p.totalMarks)} marks{p.durationMinutes ? ` · ${p.durationMinutes} min` : " · untimed"}</span>}
+              storageKey={`sl:instr:${p.attemptId}`}
+              buttonClassName="px-4 py-2.5"
+              panelClassName="border-t border-divider px-4 py-3"
+            >
+              {p.instructions ? <ClientMarkdown className="text-[14px]">{p.instructions}</ClientMarkdown> : <p className="text-[13.5px] text-muted">No special instructions.</p>}
+            </Disclosure>
+          </div>
+        )}
 
         {fatal && (
           <Alert tone="danger" className="mb-4">

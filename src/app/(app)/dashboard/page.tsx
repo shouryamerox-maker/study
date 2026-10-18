@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertCircle, ArrowRight, Bookmark, BookOpen, ClipboardCheck, GraduationCap, History } from "lucide-react";
+import { ArrowRight, Bookmark, BookOpen, ClipboardCheck, GraduationCap, RotateCcw } from "lucide-react";
 import { requirePageUser } from "@/server/auth/guards";
 import { isStaff } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { continueLearning, practiceStats, recentActivity } from "@/server/services/learning";
 import { enrolledCoursesWithProgress } from "@/server/services/student";
 import { assignedAssessments, canStudentSeeResults, finalizeExpiredAttempts } from "@/server/assessments/attempts";
-import { Badge, Card, CardHeader, EmptyState, LinkButton, PageHeader, ProgressBar, Stat, fmtDate, fmtMarks } from "@/components/ui";
+import { Badge, EmptyState, LinkButton, ProgressBar, fmtDate, fmtMarks } from "@/components/ui";
 import { ActivityList } from "@/components/learn/ActivityList";
 import { percent } from "@/lib/grading";
 
@@ -24,194 +24,202 @@ export default async function Dashboard() {
     assignedAssessments(user.id),
     db.attempt.findMany({ where: { userId: user.id }, include: { assessment: true }, orderBy: { startedAt: "desc" } }),
     practiceStats(user.id),
-    recentActivity(user.id, 8),
-    db.bookmark.findMany({ where: { userId: user.id }, include: { lesson: { include: { course: { select: { slug: true } } } } }, orderBy: { createdAt: "desc" }, take: 5 }),
+    recentActivity(user.id, 5),
+    db.bookmark.findMany({ where: { userId: user.id }, include: { lesson: { include: { course: { select: { slug: true } } } } }, orderBy: { createdAt: "desc" }, take: 4 }),
   ]);
 
   const firstName = user.name.split(" ")[0];
-  const totals = courses.reduce((a, c) => ({ done: a.done + c.progress.done, total: a.total + c.progress.total }), { done: 0, total: 0 });
-  const overall = totals.total ? Math.round((totals.done / totals.total) * 100) : 0;
   const now = new Date();
-  const pendingTests = tests.filter((t) => {
-    const mine = attempts.filter((a) => a.assessmentId === t.id);
-    const open = mine.some((a) => a.status === "IN_PROGRESS");
-    const closed = t.effectiveDueAt && t.effectiveDueAt < now;
-    return open || (!closed && mine.length < t.attemptLimit && t.status === "PUBLISHED");
-  });
-  const released = attempts.filter((a) => a.status !== "IN_PROGRESS" && canStudentSeeResults(a.assessment, a)).slice(0, 4);
   const current = cont ? courses.find((c) => c.tree.id === cont.lesson.courseId) : courses[0];
+  const chapterProgress = cont && current ? current.progress.chapters.get(cont.lesson.chapterId) : null;
+
+  const pendingTests = tests
+    .map((t) => {
+      const mine = attempts.filter((a) => a.assessmentId === t.id);
+      const open = mine.find((a) => a.status === "IN_PROGRESS");
+      const closed = t.effectiveDueAt && t.effectiveDueAt < now;
+      const available = !open && !closed && mine.length < t.attemptLimit && t.status === "PUBLISHED" && !(t.availableFrom && t.availableFrom > now);
+      return { t, open, available };
+    })
+    .filter((x) => x.open || x.available);
+  const released = attempts.filter((a) => a.status !== "IN_PROGRESS" && canStudentSeeResults(a.assessment, a)).slice(0, 3);
+  const awaiting = attempts.filter((a) => a.status !== "IN_PROGRESS" && !canStudentSeeResults(a.assessment, a)).length;
+
+  // One recommended step, chosen from real data in priority order.
+  const openAttempt = pendingTests.find((x) => x.open);
+  const dueSoon = pendingTests
+    .filter((x) => x.available && x.t.effectiveDueAt && x.t.effectiveDueAt.getTime() - now.getTime() < 3 * 86400000)
+    .sort((a, b) => a.t.effectiveDueAt!.getTime() - b.t.effectiveDueAt!.getTime())[0];
+  const weak = practice.weak[0];
+  const step = openAttempt
+    ? { text: `Finish your test “${openAttempt.t.title}” — your answers are saved.`, href: `/tests/${openAttempt.t.id}/attempt/${openAttempt.open!.id}`, cta: "Resume test", icon: ClipboardCheck }
+    : dueSoon
+      ? { text: `“${dueSoon.t.title}” is due ${fmtDate(dueSoon.t.effectiveDueAt, true)}.`, href: `/tests/${dueSoon.t.id}`, cta: "Open test", icon: ClipboardCheck }
+      : weak
+        ? { text: `Revise ${weak.title}: ${weak.correct} of ${weak.attempted} of your latest practice answers are correct.`, href: `/practice?chapter=${weak.id}`, cta: "Practise", icon: RotateCcw }
+        : null;
+
+  if (courses.length === 0) {
+    return (
+      <div className="mx-auto max-w-[760px]">
+        <h1 className="text-[24px] font-semibold tracking-[-0.01em]">Welcome, {firstName}</h1>
+        <div className="mt-6 rounded-[12px] border border-border bg-surface">
+          <EmptyState icon={<GraduationCap size={18} />} title="Start by enrolling in a course" action={<LinkButton href="/courses">Browse courses</LinkButton>}>
+            Once you enrol, your next lesson, tests and progress appear here.
+          </EmptyState>
+        </div>
+        {pendingTests.length > 0 && <TestsList pending={pendingTests} released={[]} awaiting={0} />}
+      </div>
+    );
+  }
 
   return (
-    <>
-      <PageHeader title={`Welcome back, ${firstName}`} description="Here is where you are and what to do next." />
+    <div className="mx-auto max-w-[960px]">
+      <h1 className="text-[24px] font-semibold tracking-[-0.01em]">Welcome back, {firstName}</h1>
 
-      {courses.length === 0 ? (
-        <Card className="mb-6">
-          <EmptyState icon={<GraduationCap size={18} />} title="Start by enrolling in a course" action={<LinkButton href="/courses">Browse courses</LinkButton>}>
-            Once you enrol, your progress, tests and practice history will appear here.
-          </EmptyState>
-        </Card>
-      ) : (
-        <div className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <Card className="flex flex-col justify-between p-5">
+      {/* Primary action */}
+      <section className="mt-5 rounded-[14px] border border-border bg-surface p-6" aria-labelledby="continue-h">
+        <div className="text-[12.5px] font-medium text-primary">{cont?.reason === "resume" ? "Continue where you left off" : cont?.reason === "course_complete" ? "You finished this course" : "Your next lesson"}</div>
+        {cont ? (
+          <>
+            <h2 id="continue-h" className="mt-1 text-[22px] font-semibold leading-snug tracking-[-0.01em]">
+              {cont.lesson.title}
+            </h2>
+            <p className="mt-1 text-[13.5px] text-muted">
+              {cont.lesson.course.title} · {cont.lesson.chapter.title}
+            </p>
+          </>
+        ) : (
+          <h2 id="continue-h" className="mt-1 text-[22px] font-semibold">
+            Start {current?.tree.title}
+          </h2>
+        )}
+        <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          {chapterProgress && (
             <div>
-              <div className="label-caps mb-1.5">{cont?.reason === "resume" ? "Continue learning" : cont?.reason === "course_complete" ? "Course complete" : "Up next"}</div>
-              {cont ? (
-                <>
-                  <div className="text-[12.5px] text-muted">
-                    {cont.lesson.course.title} · {cont.lesson.chapter.title}
-                  </div>
-                  <h2 className="mt-0.5 text-[19px] font-semibold tracking-[-0.01em]">{cont.lesson.title}</h2>
-                </>
-              ) : (
-                <h2 className="text-[19px] font-semibold">Start your first lesson</h2>
-              )}
+              <div className="mb-1.5 flex justify-between text-[12.5px]">
+                <span className="text-muted">This chapter</span>
+                <span className="tabular-nums">
+                  {chapterProgress.done} of {chapterProgress.total} lessons
+                </span>
+              </div>
+              <ProgressBar value={chapterProgress.total ? (chapterProgress.done / chapterProgress.total) * 100 : 0} label="Chapter progress" />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <LinkButton href={cont ? `/learn/${cont.lesson.course.slug}/${cont.lesson.slug}` : "/learn"}>
-                <BookOpen size={15} /> {cont?.reason === "resume" ? "Resume lesson" : "Start lesson"}
-              </LinkButton>
-              {current && (
-                <LinkButton href={`/syllabus/${current.tree.slug}`} variant="secondary">
-                  View syllabus
-                </LinkButton>
-              )}
+          )}
+          {current && (
+            <div>
+              <div className="mb-1.5 flex justify-between text-[12.5px]">
+                <span className="text-muted">Whole course</span>
+                <span className="tabular-nums">{current.progress.percent}%</span>
+              </div>
+              <ProgressBar value={current.progress.percent} tone="success" label="Course progress" />
             </div>
-          </Card>
-          <Card className="p-5">
-            <div className="label-caps mb-2">Overall completion</div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-[30px] font-semibold tabular-nums">{overall}%</span>
-              <span className="text-[13px] text-muted">
-                {totals.done} of {totals.total} lessons
-              </span>
-            </div>
-            <ProgressBar value={overall} className="mt-2" label="Overall completion" />
-            {current && (
-              <dl className="mt-4 grid grid-cols-2 gap-3 text-[13px]">
-                <div>
-                  <dt className="text-muted">Chapters completed</dt>
-                  <dd className="font-semibold tabular-nums">{current.progress.chaptersCompleted}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted">Chapters remaining</dt>
-                  <dd className="font-semibold tabular-nums">{current.progress.chapterCount - current.progress.chaptersCompleted}</dd>
-                </div>
-              </dl>
-            )}
-          </Card>
+          )}
         </div>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <LinkButton href={cont ? `/learn/${cont.lesson.course.slug}/${cont.lesson.slug}` : "/learn"}>
+            <BookOpen size={15} /> {cont?.reason === "resume" ? "Continue lesson" : "Start lesson"}
+          </LinkButton>
+          {current && (
+            <LinkButton href={`/syllabus/${current.tree.slug}${cont ? `?open=${cont.lesson.chapterId}#ch-${cont.lesson.chapterId}` : ""}`} variant="secondary">
+              View syllabus
+            </LinkButton>
+          )}
+        </div>
+      </section>
+
+      {step && (
+        <Link href={step.href} className="mt-3 flex items-center gap-3 rounded-[12px] border border-[#ead1c5] bg-primary-soft/50 px-5 py-3.5 hover:bg-primary-soft">
+          <step.icon size={17} className="shrink-0 text-primary" aria-hidden />
+          <span className="min-w-0 flex-1 text-[14px]">
+            <span className="font-medium">Recommended next: </span>
+            {step.text}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium text-primary">
+            {step.cta} <ArrowRight size={14} />
+          </span>
+        </Link>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Lessons completed" value={totals.done} hint={`${Math.max(totals.total - totals.done, 0)} remaining`} />
-        <Stat label="Practice accuracy" value={practice.accuracy == null ? "—" : `${practice.accuracy}%`} hint={`${practice.questionsAttempted} questions attempted`} />
-        <Stat label="Tests to do" value={pendingTests.length} tone={pendingTests.length ? "pending" : undefined} />
-        <Stat label="Tests submitted" value={attempts.filter((a) => a.status !== "IN_PROGRESS").length} />
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <TestsList pending={pendingTests} released={released} awaiting={awaiting} />
+        <section>
+          <SectionTitle title="Recent activity" href="/progress" linkLabel="My progress" />
+          {events.length === 0 ? <p className="text-[13.5px] text-muted">Your learning activity will appear here.</p> : <div className="-mx-4"><ActivityList events={events} /></div>}
+          {bookmarks.length > 0 && (
+            <div className="mt-6">
+              <SectionTitle title="Bookmarks" href="/bookmarks" linkLabel="All" />
+              <ul className="space-y-1">
+                {bookmarks.map((b) => (
+                  <li key={b.id}>
+                    <Link href={`/learn/${b.lesson.course.slug}/${b.lesson.slug}`} className="flex items-center gap-2 py-1 text-[13.5px] hover:text-primary">
+                      <Bookmark size={13} className="shrink-0 text-primary" /> <span className="truncate">{b.lesson.title}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
       </div>
+    </div>
+  );
+}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader title="Assigned tests" action={<Link href="/tests" className="text-[12.5px] text-primary hover:underline">All tests</Link>} />
-          {pendingTests.length === 0 ? (
-            <EmptyState icon={<ClipboardCheck size={18} />} title="No tests waiting for you" />
-          ) : (
-            <ul className="divide-y divide-divider">
-              {pendingTests.map((t) => (
-                <li key={t.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/tests/${t.id}`} className="font-medium hover:text-primary">
-                      {t.title}
-                    </Link>
-                    <div className="text-[12px] text-muted">
-                      {t.currentVersion?.totalMarks ?? "—"} marks{t.durationMinutes ? ` · ${t.durationMinutes} min` : ""}
-                      {t.effectiveDueAt ? ` · due ${fmtDate(t.effectiveDueAt, true)}` : ""}
-                    </div>
-                  </div>
-                  {attempts.some((a) => a.assessmentId === t.id && a.status === "IN_PROGRESS") ? <Badge tone="pending">In progress</Badge> : <Badge tone="primary">To do</Badge>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+function SectionTitle({ title, href, linkLabel }: { title: string; href: string; linkLabel: string }) {
+  return (
+    <div className="mb-3 flex items-baseline justify-between border-b border-divider pb-2">
+      <h2 className="text-[15px] font-semibold">{title}</h2>
+      <Link href={href} className="text-[12.5px] font-medium text-primary hover:underline">
+        {linkLabel}
+      </Link>
+    </div>
+  );
+}
 
-        <Card>
-          <CardHeader title="Recent results" action={<Link href="/tests" className="text-[12.5px] text-primary hover:underline">History</Link>} />
-          {released.length === 0 ? (
-            <EmptyState icon={<History size={18} />} title="No released results yet">
-              Results appear here once your teacher releases them.
-            </EmptyState>
-          ) : (
-            <ul className="divide-y divide-divider">
-              {released.map((a) => (
-                <li key={a.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/tests/${a.assessmentId}/result/${a.id}`} className="font-medium hover:text-primary">
-                      {a.assessment.title}
-                    </Link>
-                    <div className="text-[12px] text-muted">Submitted {fmtDate(a.submittedAt)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold tabular-nums">
-                      {fmtMarks(a.score)} / {fmtMarks(a.maxScore)}
-                    </div>
-                    {a.gradingStatus === "PENDING_REVIEW" ? <Badge tone="pending">Partly graded</Badge> : <span className="text-[12px] text-muted">{percent(a.score ?? 0, a.maxScore)}%</span>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+type Pending = { t: Awaited<ReturnType<typeof assignedAssessments>>[number]; open?: { id: string }; available: boolean };
+type Released = { id: string; assessmentId: string; score: number | null; maxScore: number; gradingStatus: string; submittedAt: Date | null; assessment: { title: string } };
 
-        <Card>
-          <CardHeader title="Needs more practice" description="Chapters where under 60% of your latest practice answers are correct." />
-          {practice.weak.length === 0 ? (
-            <EmptyState icon={<AlertCircle size={18} />} title={practice.questionsAttempted ? "No weak areas right now" : "No practice data yet"}>
-              {practice.questionsAttempted ? "Keep going — this updates as you practise." : "Answer practice questions at the end of lessons to see where to focus."}
-            </EmptyState>
-          ) : (
-            <ul className="divide-y divide-divider">
-              {practice.weak.slice(0, 5).map((w) => (
-                <li key={w.slug} className="flex items-center gap-3 px-4 py-2.5">
-                  <span className="min-w-0 flex-1 text-[13.5px] font-medium">{w.title}</span>
-                  <span className="text-[12.5px] tabular-nums text-danger">
-                    {w.correct}/{w.attempted} correct
+function TestsList({ pending, released, awaiting }: { pending: Pending[]; released: Released[]; awaiting: number }) {
+  return (
+    <section>
+      <SectionTitle title="Tests" href="/tests" linkLabel="All tests" />
+      {pending.length === 0 && released.length === 0 ? (
+        <p className="text-[13.5px] text-muted">{awaiting ? `${awaiting} submitted test${awaiting > 1 ? "s are" : " is"} waiting for your teacher to release results.` : "No tests assigned right now."}</p>
+      ) : (
+        <ul className="space-y-1">
+          {pending.map(({ t, open }) => (
+            <li key={t.id}>
+              <Link href={open ? `/tests/${t.id}/attempt/${open.id}` : `/tests/${t.id}`} className="-mx-3 flex items-center gap-3 rounded-[8px] px-3 py-2.5 hover:bg-surface">
+                <ClipboardCheck size={16} className="shrink-0 text-primary" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-medium">{t.title}</span>
+                  <span className="block text-[12px] text-muted">
+                    {t.currentVersion?.totalMarks ?? "—"} marks{t.durationMinutes ? ` · ${t.durationMinutes} min` : ""}
+                    {t.effectiveDueAt ? ` · due ${fmtDate(t.effectiveDueAt, true)}` : ""}
                   </span>
-                </li>
-              ))}
-              <li className="px-4 py-2.5">
-                <Link href="/practice?mode=revision" className="inline-flex items-center gap-1 text-[13px] text-primary hover:underline">
-                  Revise incorrect answers <ArrowRight size={13} />
-                </Link>
-              </li>
-            </ul>
-          )}
-        </Card>
-
-        <Card>
-          <CardHeader title="Recent activity" />
-          {events.length === 0 ? <EmptyState title="No activity yet" /> : <ActivityList events={events} />}
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader title="Bookmarks" action={<Link href="/bookmarks" className="text-[12.5px] text-primary hover:underline">All bookmarks & notes</Link>} />
-          {bookmarks.length === 0 ? (
-            <EmptyState icon={<Bookmark size={18} />} title="No bookmarks yet">
-              Use the Bookmark button on any lesson to save it for revision.
-            </EmptyState>
-          ) : (
-            <ul className="grid gap-px sm:grid-cols-2 lg:grid-cols-3">
-              {bookmarks.map((b) => (
-                <li key={b.id}>
-                  <Link href={`/learn/${b.lesson.course.slug}/${b.lesson.slug}`} className="flex items-center gap-2 px-4 py-2.5 text-[13.5px] hover:bg-sidebar hover:text-primary">
-                    <Bookmark size={13} className="text-primary" /> {b.lesson.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-    </>
+                </span>
+                {open ? <Badge tone="pending">In progress</Badge> : <Badge tone="primary">To do</Badge>}
+              </Link>
+            </li>
+          ))}
+          {released.map((a) => (
+            <li key={a.id}>
+              <Link href={`/tests/${a.assessmentId}/result/${a.id}`} className="-mx-3 flex items-center gap-3 rounded-[8px] px-3 py-2.5 hover:bg-surface">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px]">{a.assessment.title}</span>
+                  <span className="block text-[12px] text-muted">Result · submitted {fmtDate(a.submittedAt)}</span>
+                </span>
+                <span className="text-right text-[13.5px] font-semibold tabular-nums">
+                  {fmtMarks(a.score)}/{fmtMarks(a.maxScore)}
+                  <span className="block text-[11.5px] font-normal text-muted">{a.gradingStatus === "PENDING_REVIEW" ? "partly graded" : `${percent(a.score ?? 0, a.maxScore)}%`}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+          {awaiting > 0 && <li className="pt-1 text-[12.5px] text-faint">{awaiting} more awaiting release by your teacher.</li>}
+        </ul>
+      )}
+    </section>
   );
 }

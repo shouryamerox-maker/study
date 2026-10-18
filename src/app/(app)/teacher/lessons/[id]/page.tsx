@@ -14,8 +14,8 @@ export default async function EditLesson({ params }: { params: Promise<{ id: str
   return (
     <>
       <PageHeader
+        back={{ href: `/teacher/courses/${lesson.courseId}`, label: "Back to course outline" }}
         crumbs={[
-          { href: "/teacher/courses", label: "Courses" },
           { href: `/teacher/courses/${lesson.courseId}`, label: lesson.course.title },
           { label: lesson.chapter.title },
         ]}

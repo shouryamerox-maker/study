@@ -21,14 +21,14 @@ export default async function PreviewTest({ params }: { params: Promise<{ id: st
   } catch {
     return (
       <>
-        <PageHeader crumbs={[{ href: `/teacher/tests/${id}`, label: a.title }, { label: "Preview" }]} title="Preview" />
+        <PageHeader back={{ href: `/teacher/tests/${id}`, label: "Back to editor" }} title="Preview" />
         <Alert tone="danger">The draft has validation errors. Open the editor and save it to see what needs fixing.</Alert>
       </>
     );
   }
   return (
     <>
-      <PageHeader crumbs={[{ href: "/teacher/tests", label: "Tests" }, { href: `/teacher/tests/${id}`, label: a.title }, { label: "Preview" }]} title={snap.title} description={`Student view of the current draft · ${fmtMarks(snap.totalMarks)} marks`} />
+      <PageHeader back={{ href: `/teacher/tests/${id}`, label: "Back to editor" }} title={snap.title} description={`Student view of the current draft · ${fmtMarks(snap.totalMarks)} marks`} />
       <Alert className="mb-5">This is what students see. Answer keys, rubrics and hidden tests are not included.</Alert>
       {a.instructions && (
         <Card className="mb-5 p-5">

@@ -25,6 +25,8 @@ export default async function AttemptPage({ params }: { params: Promise<{ id: st
       assessmentId={id}
       attemptId={attemptId}
       title={data.snapshot.title}
+      instructions={data.snapshot.instructions}
+      durationMinutes={data.attempt.assessment.durationMinutes}
       totalMarks={data.snapshot.totalMarks}
       deadlineAt={data.attempt.deadlineAt?.toISOString() ?? null}
       serverTime={new Date().toISOString()}

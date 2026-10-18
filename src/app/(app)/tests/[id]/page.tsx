@@ -27,7 +27,7 @@ export default async function TestOverview({ params, searchParams }: { params: P
 
   return (
     <>
-      <PageHeader crumbs={[{ href: "/tests", label: "Tests & Results" }, { label: a.title }]} title={a.title} description={a.description} />
+      <PageHeader back={{ href: "/tests", label: "Back to tests" }} title={a.title} description={a.description} />
       {submitted && (
         <Alert tone="success" className="mb-5" title="Your test was submitted">
           Your answers have been recorded. {a.resultRelease === "IMMEDIATE" ? "You can view your result below." : "Your teacher will release the results."}

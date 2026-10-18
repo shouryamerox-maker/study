@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Copy, Eye, Plus, Save, Send, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Copy, Eye, Plus, Save, Send, Trash2 } from "lucide-react";
 import { Alert, Badge, Button, Card, CardHeader, Field, LinkButton, cn, fmtMarks } from "@/components/ui";
 import { apiFetch, ClientApiError } from "@/lib/client-api";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { Disclosure } from "@/components/Disclosure";
 
 type QType = "MCQ" | "TRUE_FALSE" | "FILL_BLANK" | "SHORT_ANSWER" | "OUTPUT_PREDICTION" | "DEBUGGING" | "CODE_WRITING" | "LONG_ANSWER";
 interface TestCase {
@@ -13,6 +15,8 @@ interface TestCase {
 }
 interface QDef {
   id?: string;
+  /** client-only stable key */
+  _k?: string;
   type: QType;
   prompt: string;
   code?: string | null;
@@ -83,6 +87,8 @@ function blank(type: QType): QDef {
   }
 }
 
+const newKey = () => Math.random().toString(36).slice(2, 10);
+
 const toLocalInput = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
 const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
 
@@ -103,12 +109,18 @@ export function TestEditor({
 }) {
   const router = useRouter();
   const [s, setS] = useState(initialSettings);
-  const [sections, setSections] = useState<SDef[]>(initialSections);
+  // Each question gets a client-only key so the open editor survives reordering.
+  const [sections, setSections] = useState<SDef[]>(() => initialSections.map((sec) => ({ ...sec, questions: sec.questions.map((q) => ({ ...q, _k: q.id ?? newKey() })) })));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "success" | "danger" | "pending"; text: string; details?: { path: string; message: string }[] } | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [openQ, setOpenQ] = useState<string | null>(null);
+  const [closedSections, setClosedSections] = useState<Set<number>>(new Set());
+
+  useUnsavedGuard(dirty, "This test has unsaved changes. Leave without saving?");
 
   const total = sections.reduce((n, sec) => n + sec.questions.reduce((a, q) => a + (Number(q.marks) || 0), 0), 0);
+  const questionCount = sections.reduce((n, x) => n + x.questions.length, 0);
 
   const touch = () => setDirty(true);
   const setSetting = <K extends keyof Settings>(k: K, v: Settings[K]) => {
@@ -133,6 +145,36 @@ export function TestEditor({
     touch();
   };
 
+  /** Client-side checks so teachers see problems before publishing (the server validates again). */
+  function problems(): string[] {
+    const out: string[] = [];
+    if (questionCount === 0) out.push("Add at least one question.");
+    let n = 0;
+    sections.forEach((sec) =>
+      sec.questions.forEach((q) => {
+        n++;
+        const where = `Q${n}`;
+        const marks = Number(q.marks);
+        if (!(marks > 0)) out.push(`${where}: marks must be more than 0.`);
+        if (!q.prompt.trim()) out.push(`${where}: question text is empty.`);
+        if (q.type === "MCQ" && (q.data.options ?? []).some((o) => !o.text.trim())) out.push(`${where}: every option needs text.`);
+        if (q.type === "FILL_BLANK") {
+          const blanks = (q.prompt.match(/___/g) ?? []).length;
+          const lists = q.answer.accepted ?? [];
+          if (blanks !== lists.length) out.push(`${where}: ${blanks} blank(s) in the text but ${lists.length} answer list(s).`);
+          if (lists.some((l) => l.length === 0)) out.push(`${where}: every blank needs at least one accepted answer.`);
+        }
+        if (q.type === "OUTPUT_PREDICTION" && !(q.answer.expected ?? "").trim()) out.push(`${where}: enter the expected output.`);
+        if (q.rubric && q.rubric.length) {
+          const sum = q.rubric.reduce((a, r) => a + (Number(r.marks) || 0), 0);
+          if (Math.abs(sum - marks) > 1e-9) out.push(`${where}: rubric adds up to ${fmtMarks(sum)} but the question is worth ${fmtMarks(marks)}.`);
+          if (q.rubric.some((r) => !r.criterion.trim())) out.push(`${where}: a rubric criterion is empty.`);
+        }
+      }),
+    );
+    return out;
+  }
+
   async function save(): Promise<boolean> {
     setBusy(true);
     setMsg(null);
@@ -141,7 +183,7 @@ export function TestEditor({
         method: "PUT",
         body: {
           settings: { ...s, durationMinutes: s.durationMinutes || null, description: s.description || null, instructions: s.instructions || null },
-          sections: sections.map((sec) => ({ ...sec, questions: sec.questions.map((q) => ({ ...q, marks: Number(q.marks) })) })),
+          sections: sections.map((sec) => ({ ...sec, questions: sec.questions.map(({ _k, ...q }) => ({ ...q, marks: Number(q.marks) })) })),
         },
       });
       setDirty(false);
@@ -157,12 +199,17 @@ export function TestEditor({
   }
 
   async function publish() {
+    const p = problems();
+    if (p.length) {
+      setMsg({ tone: "danger", text: "Fix these before publishing:", details: p.map((m) => ({ path: "", message: m })) });
+      return;
+    }
+    if (!confirm(`${hasAttempts ? "Publish a new version? Students who already took the test keep their original version; new attempts use this one." : "Publish this test? Assigned students will be able to start it."}\n\nTotal: ${fmtMarks(total)} marks, ${questionCount} questions.`)) return;
     if (!(await save())) return;
-    if (!confirm(hasAttempts ? "Publish a new version? Students who already took the test keep their original version; new attempts use this one." : "Publish this test? Assigned students will be able to start it.")) return;
     setBusy(true);
     try {
       await apiFetch(`/api/v1/teacher/tests/${id}/status`, { body: { action: "publish" } });
-      setMsg({ tone: "success", text: "Published." });
+      setMsg({ tone: "success", text: `Published — ${fmtMarks(total)} marks.` });
       router.refresh();
     } catch (e) {
       setMsg({ tone: "danger", text: e instanceof ClientApiError ? e.message : "Could not publish." });
@@ -178,21 +225,25 @@ export function TestEditor({
     return `Section ${Number(m[1]) + 1}, question ${Number(m[2]) + 1}${m[3] ? ` (${m[3]})` : ""}`;
   };
 
+  let qNumber = 0;
+
   return (
     <div className="space-y-5">
-      <div className="sticky top-14 z-10 -mx-4 flex flex-wrap items-center gap-2 border-b border-border bg-page/95 px-4 py-2.5 lg:-mx-6 lg:px-6">
+      <div className="sticky top-14 z-10 -mx-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-page/95 px-4 py-2.5 lg:-mx-6 lg:px-6">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[22px] font-semibold tabular-nums leading-none">{fmtMarks(total)}</span>
+          <span className="text-[13px] text-muted">marks · {questionCount} questions</span>
+        </div>
         <Badge tone={status === "PUBLISHED" ? "success" : status === "ARCHIVED" ? "neutral" : "pending"}>{status === "PUBLISHED" ? "Published" : status === "ARCHIVED" ? "Closed" : "Draft"}</Badge>
-        <span className="text-[13px] text-muted">
-          Total: <strong className={cn("tabular-nums", "text-ink")}>{fmtMarks(total)} marks</strong> · {sections.reduce((n, x) => n + x.questions.length, 0)} questions
-        </span>
-        {dirty && <span className="text-[12px] text-pending">Unsaved changes</span>}
-        <div className="ml-auto flex flex-wrap gap-2">
+        {dirty ? <span className="text-[12.5px] text-pending">Unsaved changes</span> : <span className="text-[12.5px] text-faint">All changes saved</span>}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <LinkButton href={`/teacher/tests/${id}/preview`} variant="ghost" size="sm">
             <Eye size={14} /> Preview
           </LinkButton>
-          <Button variant="secondary" size="sm" onClick={save} disabled={busy}>
+          <Button variant="secondary" size="sm" onClick={save} disabled={busy || !dirty}>
             <Save size={14} /> Save draft
           </Button>
+          <span className="mx-1 h-6 w-px bg-border" aria-hidden />
           <Button size="sm" onClick={publish} disabled={busy}>
             <Send size={14} /> {status === "PUBLISHED" ? "Publish changes" : "Publish"}
           </Button>
@@ -204,9 +255,10 @@ export function TestEditor({
           {msg.text}
           {msg.details && (
             <ul className="mt-1 list-disc pl-5 text-[12.5px]">
-              {msg.details.slice(0, 8).map((d, i) => (
+              {msg.details.slice(0, 10).map((d, i) => (
                 <li key={i}>
-                  {describePath(d.path)}: {d.message}
+                  {d.path ? `${describePath(d.path)}: ` : ""}
+                  {d.message}
                 </li>
               ))}
             </ul>
@@ -215,22 +267,28 @@ export function TestEditor({
       )}
 
       <Card>
-        <CardHeader title="Test settings" />
-        <div className="grid gap-4 p-4 md:grid-cols-2">
-          <Field label="Title" htmlFor="t-title" className="md:col-span-2">
+        <div className="grid gap-4 p-4 md:grid-cols-[1fr_160px_140px]">
+          <Field label="Test title" htmlFor="t-title">
             <input id="t-title" className="input" value={s.title} onChange={(e) => setSetting("title", e.target.value)} />
           </Field>
-          <Field label="Description" htmlFor="t-desc" className="md:col-span-2">
-            <textarea id="t-desc" rows={2} className="input" value={s.description ?? ""} onChange={(e) => setSetting("description", e.target.value)} />
-          </Field>
-          <Field label="Instructions (markdown)" htmlFor="t-ins" className="md:col-span-2">
-            <textarea id="t-ins" rows={5} className="input font-mono text-[13px]" value={s.instructions ?? ""} onChange={(e) => setSetting("instructions", e.target.value)} />
-          </Field>
-          <Field label="Duration (minutes)" htmlFor="t-dur" hint="Leave empty for an untimed test.">
+          <Field label="Duration (minutes)" htmlFor="t-dur" hint="Empty = untimed">
             <input id="t-dur" type="number" min={1} className="input" value={s.durationMinutes ?? ""} onChange={(e) => setSetting("durationMinutes", e.target.value ? Number(e.target.value) : null)} />
           </Field>
           <Field label="Attempts allowed" htmlFor="t-att">
             <input id="t-att" type="number" min={1} max={20} className="input" value={s.attemptLimit} onChange={(e) => setSetting("attemptLimit", Number(e.target.value) || 1)} />
+          </Field>
+        </div>
+        <Disclosure
+          title={<span className="text-[13.5px] font-medium">Advanced settings</span>}
+          meta={<span className="hidden text-[12px] text-faint sm:inline">Instructions, dates, result release, syllabus coverage</span>}
+          buttonClassName="border-t border-divider px-4 py-2.5"
+          panelClassName="grid gap-4 border-t border-divider p-4 md:grid-cols-2"
+        >
+          <Field label="Description" htmlFor="t-desc" className="md:col-span-2">
+            <textarea id="t-desc" rows={2} className="input" value={s.description ?? ""} onChange={(e) => setSetting("description", e.target.value)} />
+          </Field>
+          <Field label="Instructions shown before starting (markdown)" htmlFor="t-ins" className="md:col-span-2">
+            <textarea id="t-ins" rows={5} className="input font-mono text-[13px]" value={s.instructions ?? ""} onChange={(e) => setSetting("instructions", e.target.value)} />
           </Field>
           <Field label="Opens at" htmlFor="t-from" hint="Optional.">
             <input id="t-from" type="datetime-local" className="input" value={toLocalInput(s.availableFrom)} onChange={(e) => setSetting("availableFrom", fromLocalInput(e.target.value))} />
@@ -245,12 +303,10 @@ export function TestEditor({
               <option value="IMMEDIATE">Immediately after submission</option>
             </select>
           </Field>
-          <div className="space-y-2 pt-6">
-            <label className="flex items-center gap-2 text-[13.5px]">
-              <input type="checkbox" className="accent-[#a85c40]" checked={s.showAnswerKey} onChange={(e) => setSetting("showAnswerKey", e.target.checked)} />
-              Show answer key with released results (after full grading)
-            </label>
-          </div>
+          <label className="flex items-center gap-2 pt-6 text-[13.5px]">
+            <input type="checkbox" className="accent-[#a85c40]" checked={s.showAnswerKey} onChange={(e) => setSetting("showAnswerKey", e.target.checked)} />
+            Show answer key with released results (after full grading)
+          </label>
           <fieldset className="md:col-span-2">
             <legend className="mb-1 text-[13px] font-medium">Syllabus coverage</legend>
             <div className="flex flex-wrap gap-1.5">
@@ -270,78 +326,113 @@ export function TestEditor({
               })}
             </div>
           </fieldset>
-        </div>
+        </Disclosure>
       </Card>
 
-      {sections.map((sec, si) => (
-        <Card key={sec.id ?? `new-${si}`}>
-          <div className="flex flex-wrap items-center gap-2 border-b border-divider px-4 py-3">
-            <input
-              aria-label="Section title"
-              className="input h-8 max-w-md flex-1 font-semibold"
-              value={sec.title}
-              onChange={(e) => {
-                setSections((all) => all.map((x, i) => (i === si ? { ...x, title: e.target.value } : x)));
-                touch();
-              }}
-            />
-            <span className="text-[12.5px] tabular-nums text-muted">{fmtMarks(sec.questions.reduce((n, q) => n + (Number(q.marks) || 0), 0))} marks</span>
-            <Button
-              size="sm"
-              variant="danger"
-              className="ml-auto"
-              onClick={() => {
-                if (sections.length > 1 && confirm("Delete this section and its questions?")) {
-                  setSections((all) => all.filter((_, i) => i !== si));
-                  touch();
+      {sections.map((sec, si) => {
+        const secMarks = sec.questions.reduce((n, q) => n + (Number(q.marks) || 0), 0);
+        const collapsed = closedSections.has(si);
+        const firstNumber = qNumber + 1;
+        qNumber += sec.questions.length;
+        return (
+          <section key={sec.id ?? `new-${si}`} className="rounded-[12px] border border-border bg-surface">
+            <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+              <button
+                type="button"
+                aria-expanded={!collapsed}
+                aria-label={`${collapsed ? "Expand" : "Collapse"} section`}
+                onClick={() =>
+                  setClosedSections((c) => {
+                    const n = new Set(c);
+                    if (n.has(si)) n.delete(si);
+                    else n.add(si);
+                    return n;
+                  })
                 }
-              }}
-              disabled={sections.length === 1}
-            >
-              <Trash2 size={13} /> Section
-            </Button>
-          </div>
-          <div className="px-4 pt-3">
-            <input
-              aria-label="Section instructions"
-              className="input h-8 text-[13px]"
-              placeholder="Section instructions (optional)"
-              value={sec.instructions ?? ""}
-              onChange={(e) => {
-                setSections((all) => all.map((x, i) => (i === si ? { ...x, instructions: e.target.value } : x)));
-                touch();
-              }}
-            />
-          </div>
-          <div className="space-y-3 p-4">
-            {sec.questions.map((q, qi) => (
-              <QuestionEditor
-                key={q.id ?? `n-${si}-${qi}`}
-                q={q}
-                label={`Q${sections.slice(0, si).reduce((n, x) => n + x.questions.length, 0) + qi + 1}`}
-                onChange={(p) => updateQ(si, qi, p)}
-                onMove={(d) => moveQ(si, qi, d)}
-                onDuplicate={() => {
-                  setSections((all) => all.map((x, i) => (i === si ? { ...x, questions: [...x.questions.slice(0, qi + 1), { ...structuredClone(q), id: undefined }, ...x.questions.slice(qi + 1)] } : x)));
+                className="rounded p-1 text-faint"
+              >
+                <ChevronDown size={16} className={cn("transition-transform duration-150", collapsed && "-rotate-90")} />
+              </button>
+              <input
+                aria-label="Section title"
+                className="input h-8 max-w-md flex-1 border-transparent bg-transparent font-semibold hover:border-border focus:bg-surface"
+                value={sec.title}
+                onChange={(e) => {
+                  setSections((all) => all.map((x, i) => (i === si ? { ...x, title: e.target.value } : x)));
                   touch();
                 }}
-                onDelete={() => {
-                  if (confirm("Delete this question?")) {
-                    setSections((all) => all.map((x, i) => (i === si ? { ...x, questions: x.questions.filter((_, j) => j !== qi) } : x)));
+              />
+              <span className="text-[12.5px] tabular-nums text-muted">
+                {sec.questions.length} question{sec.questions.length === 1 ? "" : "s"} · {fmtMarks(secMarks)} marks
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="ml-auto hover:text-danger"
+                onClick={() => {
+                  if (sections.length > 1 && confirm(`Delete “${sec.title}” and its ${sec.questions.length} question(s)?`)) {
+                    setSections((all) => all.filter((_, i) => i !== si));
                     touch();
                   }
                 }}
-              />
-            ))}
-            <AddQuestion
-              onAdd={(t) => {
-                setSections((all) => all.map((x, i) => (i === si ? { ...x, questions: [...x.questions, blank(t)] } : x)));
-                touch();
-              }}
-            />
-          </div>
-        </Card>
-      ))}
+                disabled={sections.length === 1}
+                aria-label="Delete section"
+              >
+                <Trash2 size={13} />
+              </Button>
+            </div>
+            {!collapsed && (
+              <div className="border-t border-divider">
+                <div className="px-4 pt-3">
+                  <input
+                    aria-label="Section instructions"
+                    className="input h-8 text-[13px]"
+                    placeholder="Section instructions shown to students (optional)"
+                    value={sec.instructions ?? ""}
+                    onChange={(e) => {
+                      setSections((all) => all.map((x, i) => (i === si ? { ...x, instructions: e.target.value } : x)));
+                      touch();
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5 p-3">
+                  {sec.questions.map((q, qi) => (
+                    <QuestionEditor
+                      key={q._k}
+                      q={q}
+                      label={`Q${firstNumber + qi}`}
+                      open={openQ === q._k}
+                      onToggle={() => setOpenQ((o) => (o === q._k ? null : (q._k ?? null)))}
+                      onChange={(p) => updateQ(si, qi, p)}
+                      onMove={(d) => moveQ(si, qi, d)}
+                      onDuplicate={() => {
+                        const copy = { ...structuredClone(q), id: undefined, _k: newKey() };
+                        setSections((all) => all.map((x, i) => (i === si ? { ...x, questions: [...x.questions.slice(0, qi + 1), copy, ...x.questions.slice(qi + 1)] } : x)));
+                        setOpenQ(copy._k);
+                        touch();
+                      }}
+                      onDelete={() => {
+                        if (confirm(`Delete Q${firstNumber + qi}?`)) {
+                          setSections((all) => all.map((x, i) => (i === si ? { ...x, questions: x.questions.filter((_, j) => j !== qi) } : x)));
+                          touch();
+                        }
+                      }}
+                    />
+                  ))}
+                  <AddQuestion
+                    onAdd={(t) => {
+                      const nq = { ...blank(t), _k: newKey() };
+                      setSections((all) => all.map((x, i) => (i === si ? { ...x, questions: [...x.questions, nq] } : x)));
+                      setOpenQ(nq._k);
+                      touch();
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+        );
+      })}
       <Button
         variant="secondary"
         onClick={() => {
@@ -354,6 +445,7 @@ export function TestEditor({
     </div>
   );
 }
+
 
 function AddQuestion({ onAdd }: { onAdd: (t: QType) => void }) {
   const [t, setT] = useState<QType>("MCQ");
@@ -399,8 +491,7 @@ function TestCasesEditor({ label, cases, onChange }: { label: string; cases: Tes
   );
 }
 
-function QuestionEditor({ q, label, onChange, onMove, onDuplicate, onDelete }: { q: QDef; label: string; onChange: (p: Partial<QDef> | ((q: QDef) => QDef)) => void; onMove: (d: -1 | 1) => void; onDuplicate: () => void; onDelete: () => void }) {
-  const [open, setOpen] = useState(!q.id);
+function QuestionEditor({ q, label, open, onToggle, onChange, onMove, onDuplicate, onDelete }: { q: QDef; label: string; open: boolean; onToggle: () => void; onChange: (p: Partial<QDef> | ((q: QDef) => QDef)) => void; onMove: (d: -1 | 1) => void; onDuplicate: () => void; onDelete: () => void }) {
   const rubricSum = (q.rubric ?? []).reduce((n, r) => n + (Number(r.marks) || 0), 0);
   const setAnswer = (patch: Partial<QDef["answer"]>) => onChange((x) => ({ ...x, answer: { ...x.answer, ...patch } }));
   const setData = (patch: Partial<QDef["data"]>) => onChange((x) => ({ ...x, data: { ...x.data, ...patch } }));
@@ -409,7 +500,7 @@ function QuestionEditor({ q, label, onChange, onMove, onDuplicate, onDelete }: {
   return (
     <div className="rounded-[10px] border border-border">
       <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-        <button type="button" onClick={() => setOpen((o) => !o)} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={open}>
+        <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={open}>
           <span className="text-[12.5px] font-semibold">{label}</span>
           <Badge>{TYPE_LABEL[q.type]}</Badge>
           <span className="truncate text-[13px] text-muted">{q.prompt || "(no question text)"}</span>

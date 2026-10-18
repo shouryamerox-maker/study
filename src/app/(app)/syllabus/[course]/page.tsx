@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { FileText } from "lucide-react";
+import { BookOpen, FileText } from "lucide-react";
 import { requirePageUser } from "@/server/auth/guards";
 import { isStaff } from "@/server/auth/session";
 import { db } from "@/server/db";
-import { computeCourseProgress, getCourseTree, progressMap } from "@/server/services/learning";
-import { Alert, Badge, Card, PageHeader, ProgressBar, Stat } from "@/components/ui";
-import { SyllabusTree } from "@/components/learn/SyllabusTree";
+import { buildOutline, computeCourseProgress, courseContinueLesson, getCourseTree, progressMap } from "@/server/services/learning";
+import { LinkButton, PageHeader, ProgressBar } from "@/components/ui";
+import { SyllabusOutline } from "@/components/learn/SyllabusOutline";
 import { EnrollButton } from "@/components/learn/EnrollButton";
 
 export async function generateMetadata({ params }: { params: Promise<{ course: string }> }) {
@@ -13,8 +13,9 @@ export async function generateMetadata({ params }: { params: Promise<{ course: s
   return { title: c ? `Syllabus · ${c.title}` : "Syllabus" };
 }
 
-export default async function CourseSyllabus({ params }: { params: Promise<{ course: string }> }) {
+export default async function CourseSyllabus({ params, searchParams }: { params: Promise<{ course: string }>; searchParams: Promise<{ open?: string }> }) {
   const { course: slug } = await params;
+  const { open } = await searchParams;
   const user = await requirePageUser();
   const staff = isStaff(user.role);
   const tree = await getCourseTree(slug, { includeUnpublished: staff });
@@ -25,53 +26,65 @@ export default async function CourseSyllabus({ params }: { params: Promise<{ cou
   ]);
   const progress = computeCourseProgress(tree, pm);
   const enrolled = enrollment?.status === "active";
-  const covered = tree.units.flatMap((u) => u.chapters).filter((c) => c.coveredInClassAt).length;
+  const next = staff ? null : courseContinueLesson(tree, pm);
 
   return (
-    <>
-      <PageHeader
-        crumbs={[{ href: "/syllabus", label: "Syllabus" }, { label: tree.title }]}
-        title={tree.title}
-        description={tree.summary}
-        actions={!staff && <EnrollButton slug={tree.slug} enrolled={enrolled} />}
-      />
-      {tree.isStarterContent && (
-        <Alert tone="neutral" className="mb-5" title="Starter curriculum">
-          This course uses the platform&apos;s starter C curriculum. It will be updated to match the official syllabus when your teacher publishes it.
-        </Alert>
-      )}
-      {tree.files.length > 0 && (
-        <Card className="mb-5 p-4">
-          <div className="label-caps mb-2">Syllabus documents</div>
-          <div className="flex flex-wrap gap-3">
+    <div className="mx-auto max-w-[860px]">
+      <PageHeader back={staff ? { href: "/teacher/courses", label: "Back to courses" } : { href: "/courses", label: "Back to my courses" }} title={tree.title} />
+
+      <section className="mb-7 -mt-2">
+        <p className="max-w-2xl text-[14px] leading-relaxed text-muted line-clamp-3">{tree.summary}</p>
+        {tree.isStarterContent && <p className="mt-1.5 text-[12.5px] text-faint">Starter curriculum — your teacher may replace it with the official syllabus.</p>}
+
+        {!staff && (
+          <div className="mt-5 flex flex-col gap-4 rounded-[12px] border border-border bg-surface p-5 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[13px] text-muted">Your progress</span>
+                <span className="text-[13px] tabular-nums">
+                  <strong className="text-ink">{progress.done}</strong> of {progress.total} lessons · {progress.percent}%
+                </span>
+              </div>
+              <ProgressBar value={progress.percent} className="mt-2" label="Course progress" />
+              {next && (
+                <p className="mt-2.5 truncate text-[13px] text-muted">
+                  {next.resume ? "Continue with" : progress.done ? "Up next" : "Start with"}: <span className="font-medium text-ink">{next.title}</span> · {next.chapterTitle}
+                </p>
+              )}
+            </div>
+            {next ? (
+              <LinkButton href={`/learn/${tree.slug}/${next.slug}`} className="shrink-0">
+                <BookOpen size={15} /> {next.started ? "Continue learning" : "Start the course"}
+              </LinkButton>
+            ) : (
+              progress.total > 0 && <span className="text-[13.5px] font-medium text-success">Course complete</span>
+            )}
+          </div>
+        )}
+        {!staff && !enrolled && (
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] text-muted">
+            Enrol to see this course on your dashboard and receive its tests.
+            <EnrollButton slug={tree.slug} enrolled={false} />
+          </div>
+        )}
+        {tree.files.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1">
             {tree.files.map((f) => (
-              <a key={f.id} href={f.url ?? `/api/v1/files/${f.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13.5px] text-primary hover:underline">
+              <a key={f.id} href={f.url ?? `/api/v1/files/${f.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline">
                 <FileText size={14} /> {f.title}
               </a>
             ))}
           </div>
-        </Card>
-      )}
-      {!staff && (
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Course completion" value={`${progress.percent}%`} hint={<ProgressBar value={progress.percent} className="mt-1.5" />} />
-          <Stat label="Lessons completed" value={`${progress.done} / ${progress.total}`} />
-          <Stat label="Chapters completed" value={`${progress.chaptersCompleted} / ${progress.chapterCount}`} />
-          <Stat label="Covered in class" value={`${covered} / ${progress.chapterCount}`} hint="Marked by your teacher" />
-        </div>
-      )}
-      {!staff && !enrolled && (
-        <Alert tone="primary" className="mb-5">
-          You can read lessons without enrolling, but enrol to see this course on your dashboard and receive course tests.
-        </Alert>
-      )}
-      <div className="mb-3 flex flex-wrap gap-2 text-[12px] text-muted">
-        <Badge tone="success">Completed</Badge>
-        <Badge tone="pending">In progress</Badge>
-        <Badge>Not started</Badge>
-        <Badge>Locked</Badge>
-      </div>
-      <SyllabusTree tree={tree} chapters={progress.chapters} lessonStatus={(id) => pm.get(id)?.status} showProgress={!staff} />
-    </>
+        )}
+      </section>
+
+      <SyllabusOutline
+        courseSlug={tree.slug}
+        units={buildOutline(tree, staff ? null : progress, staff ? null : pm)}
+        currentLessonId={next?.id ?? null}
+        initialOpenChapterId={open ?? null}
+        showProgress={!staff}
+      />
+    </div>
   );
 }

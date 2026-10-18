@@ -30,6 +30,7 @@ export function StudentProgressReport({
   activeDays,
   testHref,
   lessonHref = true,
+  show,
 }: {
   courses: Courses;
   practice: Practice;
@@ -38,7 +39,9 @@ export function StudentProgressReport({
   activeDays: number;
   testHref: (t: TestRow) => string | null;
   lessonHref?: boolean;
+  show?: ("stats" | "courses" | "tests" | "practice" | "activity")[];
 }) {
+  const has = (s: NonNullable<typeof show>[number]) => !show || show.includes(s);
   const visible = tests.filter((t) => t.visible && t.score != null);
   const avg = visible.length ? Math.round((visible.reduce((s, t) => s + percent(t.score!, t.maxScore), 0) / visible.length) * 10) / 10 : null;
   const best = visible.length ? Math.max(...visible.map((t) => percent(t.score!, t.maxScore))) : null;
@@ -47,14 +50,14 @@ export function StudentProgressReport({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {has("stats") && (<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Lessons completed" value={`${totals.done} / ${totals.total}`} hint={`${Math.max(totals.total - totals.done, 0)} remaining`} />
         <Stat label="Practice accuracy" value={practice.accuracy == null ? "—" : `${practice.accuracy}%`} hint={`${practice.questionsAttempted} questions · ${practice.totalSubmissions} submissions`} />
         <Stat label="Average test score" value={avg == null ? "—" : `${avg}%`} hint={best != null ? `Best ${best}% · latest ${latest ? percent(latest.score!, latest.maxScore) : "—"}%` : "No released results"} />
         <Stat label="Active days (30 days)" value={activeDays} hint="Days with recorded learning activity" />
-      </div>
+      </div>)}
 
-      {courses.map(({ tree, progress, progressMap }) => (
+      {has("courses") && courses.map(({ tree, progress, progressMap }) => (
         <Card key={tree.id}>
           <CardHeader
             title={tree.title}
@@ -122,8 +125,8 @@ export function StudentProgressReport({
         </Card>
       ))}
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
+      <div className={has("tests") && has("practice") ? "grid gap-5 lg:grid-cols-2" : "grid gap-5"}>
+        {has("tests") && (<Card>
           <CardHeader title="Test history" />
           {tests.length === 0 ? (
             <EmptyState title="No tests submitted yet" />
@@ -173,8 +176,8 @@ export function StudentProgressReport({
               </table>
             </div>
           )}
-        </Card>
-        <Card>
+        </Card>)}
+        {has("practice") && (<Card>
           <CardHeader title="Practice by chapter" description={practice.weak.length ? `Weak: ${practice.weak.map((w) => w.title).join(", ")}` : undefined} />
           {practice.byChapter.length === 0 ? (
             <EmptyState title="No practice yet" />
@@ -194,13 +197,13 @@ export function StudentProgressReport({
               })}
             </ul>
           )}
-        </Card>
+        </Card>)}
       </div>
 
-      <Card>
+      {has("activity") && (<Card>
         <CardHeader title="Learning history" description="Recorded events — lesson opens are not counted as study time." />
         {events.length === 0 ? <EmptyState title="No activity recorded yet" /> : <ActivityList events={events} />}
-      </Card>
+      </Card>)}
     </div>
   );
 }

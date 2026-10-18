@@ -17,7 +17,7 @@ export default async function EditCourse({ params }: { params: Promise<{ id: str
   return (
     <>
       <PageHeader
-        crumbs={[{ href: "/teacher/courses", label: "Courses & Syllabus" }, { label: tree.title }]}
+        back={{ href: "/teacher/courses", label: "Back to courses" }}
         title={tree.title}
         description={tree.summary}
         actions={

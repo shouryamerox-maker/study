@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, History, MinusCircle, Play, XCircle } from "lucide-react";
 import { Alert, Badge, Button, Card, CardHeader, cn, fmtDate, fmtMarks } from "@/components/ui";
 import { apiFetch, ClientApiError } from "@/lib/client-api";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { ClientCode, ClientMarkdown } from "@/components/content/ClientContent";
 import { OutputView } from "@/components/content/CodeView";
 
@@ -97,6 +98,15 @@ export function ReviewWorkspace({
     const byId = initialQuestionId ? items.findIndex((i) => i.question.id === initialQuestionId) : -1;
     return byId >= 0 ? byId : Math.max(firstPending, 0);
   });
+  const [gradeDirty, setGradeDirty] = useState(false);
+  useUnsavedGuard(gradeDirty, "You have entered marks or feedback that are not saved. Leave without saving?");
+  /** Moving to another question asks first if the current grade is unsaved. */
+  const go = (i: number) => {
+    if (i === idx) return;
+    if (gradeDirty && !window.confirm("The marks or feedback for this question are not saved. Discard them?")) return;
+    setGradeDirty(false);
+    setIdx(i);
+  };
   const it = items[idx];
   const q = it.question;
   const r = it.response;
@@ -164,7 +174,7 @@ export function ReviewWorkspace({
                   <button
                     key={qid}
                     type="button"
-                    onClick={() => setIdx(i)}
+                    onClick={() => go(i)}
                     aria-current={i === idx ? "step" : undefined}
                     className={cn("flex w-full items-center gap-2 rounded-[6px] px-2 py-1 text-left text-[12.5px]", i === idx ? "bg-primary-soft font-medium text-primary-dark" : "hover:bg-sidebar")}
                   >
@@ -221,6 +231,7 @@ export function ReviewWorkspace({
 
           {r && !attempt.inProgress && (
             <GradeForm
+              onDirty={setGradeDirty}
               key={r.id + (r.gradedAt ?? "")}
               item={it}
               onSaved={(resp, att) => {
@@ -251,14 +262,14 @@ export function ReviewWorkspace({
           )}
 
           <div className="flex justify-between">
-            <Button variant="secondary" onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}>
+            <Button variant="secondary" onClick={() => go(Math.max(0, idx - 1))} disabled={idx === 0}>
               <ChevronLeft size={15} /> Previous
             </Button>
             <Button
               variant="secondary"
               onClick={() => {
                 const nextPending = items.findIndex((x, i) => i > idx && x.response?.status === "PENDING_REVIEW");
-                setIdx(nextPending >= 0 ? nextPending : Math.min(items.length - 1, idx + 1));
+                go(nextPending >= 0 ? nextPending : Math.min(items.length - 1, idx + 1));
               }}
               disabled={idx === items.length - 1}
             >
@@ -466,7 +477,9 @@ function Evaluator({ responseId, initial, available, hasCode }: { responseId: st
 function GradeForm({
   item,
   onSaved,
+  onDirty,
 }: {
+  onDirty: (dirty: boolean) => void;
   item: Item;
   onSaved: (resp: { score: number; status: Status; feedback: string | null; gradedAt: string }, attempt: { score: number | null; gradingStatus: string }) => void;
 }) {
@@ -476,6 +489,9 @@ function GradeForm({
   const [score, setScore] = useState<string>(r?.status === "PENDING_REVIEW" || r?.score == null ? "" : String(r.score));
   const [feedback, setFeedback] = useState(r?.feedback ?? "");
   const [reason, setReason] = useState("");
+  const initialScore = r?.status === "PENDING_REVIEW" || r?.score == null ? "" : String(r.score);
+  const formDirty = score !== initialScore || feedback !== (r?.feedback ?? "") || reason !== "";
+  useEffect(() => onDirty(formDirty), [formDirty, onDirty]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
