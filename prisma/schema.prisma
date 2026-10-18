@@ -1,0 +1,710 @@
+// Studyline — multi-subject learning platform
+// MySQL 8 / MariaDB 10.6+ / TiDB compatible.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "foreignKeys"
+}
+
+/* ───────────────────────── Identity & access ───────────────────────── */
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique @db.VarChar(191)
+  passwordHash String     @db.VarChar(100)
+  name         String     @db.VarChar(120)
+  role         Role       @default(STUDENT)
+  status       UserStatus @default(ACTIVE)
+  studentCode  String?    @unique @db.VarChar(40)
+  bio          String?    @db.VarChar(500)
+  avatarColor  String?    @db.VarChar(16)
+  lastActiveAt DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  sessions        Session[]
+  resetTokens     PasswordResetToken[]
+  invitesSent     TeacherInvite[]        @relation("InviteSender")
+  enrollments     Enrollment[]
+  lessonProgress  LessonProgress[]
+  events          LearningEvent[]
+  bookmarks       Bookmark[]
+  notes           Note[]
+  practiceAttempts PracticeAttempt[]
+  codeRuns        CodeRun[]
+  groupMemberships GroupMember[]
+  groupsCreated   Group[]                @relation("GroupCreator")
+  assessmentsCreated Assessment[]        @relation("AssessmentCreator")
+  assignments     AssessmentAssignment[] @relation("AssignmentStudent")
+  attempts        Attempt[]
+  gradedResponses AttemptResponse[]      @relation("ResponseGrader")
+  gradeAudits     GradeAudit[]
+  uploads         FileAsset[]
+  questionsCreated Question[]            @relation("QuestionCreator")
+
+  @@index([role, status])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique @db.Char(64)
+  userId     String
+  kind       String   @default("web") @db.VarChar(10) // web | app
+  userAgent  String?  @db.VarChar(255)
+  ip         String?  @db.VarChar(64)
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  expiresAt  DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique @db.Char(64)
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model TeacherInvite {
+  id          String    @id @default(cuid())
+  email       String    @db.VarChar(191)
+  role        Role      @default(TEACHER)
+  tokenHash   String    @unique @db.Char(64)
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  invitedBy User @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email])
+}
+
+/// Fixed-window rate limiting that works on serverless hosts (no shared memory).
+model RateLimit {
+  key         String   @id @db.VarChar(191)
+  count       Int
+  windowStart DateTime
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(120)
+  description String?  @db.VarChar(500)
+  createdById String
+  createdAt   DateTime @default(now())
+
+  createdBy   User                   @relation("GroupCreator", fields: [createdById], references: [id])
+  members     GroupMember[]
+  assignments AssessmentAssignment[]
+}
+
+model GroupMember {
+  groupId String
+  userId  String
+  addedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@index([userId])
+}
+
+/* ───────────────────────── Content hierarchy ───────────────────────── */
+/* Subject → Course → Unit → Chapter → Topic → Lesson                     */
+
+enum SubjectKind {
+  PROGRAMMING
+  SCIENCE
+  GENERAL
+}
+
+/// SEED = owned by content files (re-import may update it); EDITED = changed in the
+/// teacher UI (re-import leaves it alone unless forced).
+enum ContentSource {
+  SEED
+  EDITED
+}
+
+model Subject {
+  id          String      @id @default(cuid())
+  slug        String      @unique @db.VarChar(100)
+  name        String      @db.VarChar(120)
+  kind        SubjectKind @default(GENERAL)
+  description String?     @db.Text
+  order       Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  courses Course[]
+}
+
+model Course {
+  id               String        @id @default(cuid())
+  slug             String        @unique @db.VarChar(100)
+  subjectId        String
+  title            String        @db.VarChar(200)
+  summary          String        @db.Text
+  level            String        @default("Beginner") @db.VarChar(60)
+  codeLanguage     String?       @db.VarChar(20)
+  isStarterContent Boolean       @default(false)
+  published        Boolean       @default(true)
+  /// When true, chapters unlock only after their prerequisite chapter is complete.
+  enforcePrerequisites Boolean   @default(false)
+  order            Int           @default(0)
+  source           ContentSource @default(SEED)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  units       Unit[]
+  chapters    Chapter[]
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  questions   Question[]
+  assessments Assessment[]
+  files       FileAsset[]
+
+  @@index([subjectId])
+}
+
+model Unit {
+  id        String        @id @default(cuid())
+  courseId  String
+  slug      String        @db.VarChar(100)
+  title     String        @db.VarChar(200)
+  summary   String?       @db.Text
+  order     Int           @default(0)
+  source    ContentSource @default(SEED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapters Chapter[]
+
+  @@unique([courseId, slug])
+  @@index([courseId, order])
+}
+
+model Chapter {
+  id                    String        @id @default(cuid())
+  courseId              String
+  unitId                String
+  slug                  String        @db.VarChar(100)
+  title                 String        @db.VarChar(200)
+  summary               String?       @db.Text
+  order                 Int           @default(0)
+  isAvailable           Boolean       @default(true)
+  availableFrom         DateTime?
+  prerequisiteChapterId String?
+  /// Teacher-maintained syllabus coverage marker (independent of student progress).
+  coveredInClassAt      DateTime?
+  source                ContentSource @default(SEED)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  unit         Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  prerequisite Chapter?  @relation("ChapterPrereq", fields: [prerequisiteChapterId], references: [id], onDelete: SetNull)
+  dependents   Chapter[] @relation("ChapterPrereq")
+  topics       Topic[]
+  lessons      Lesson[]
+  questions    Question[]
+  files        FileAsset[]
+
+  @@unique([courseId, slug])
+  @@index([unitId, order])
+}
+
+model Topic {
+  id        String        @id @default(cuid())
+  chapterId String
+  slug      String        @db.VarChar(100)
+  title     String        @db.VarChar(200)
+  order     Int           @default(0)
+  source    ContentSource @default(SEED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  chapter Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([chapterId, slug])
+  @@index([chapterId, order])
+}
+
+model Lesson {
+  id         String        @id @default(cuid())
+  courseId   String
+  chapterId  String
+  topicId    String
+  slug       String        @db.VarChar(120)
+  title      String        @db.VarChar(200)
+  summary    String?       @db.Text
+  estMinutes Int           @default(15)
+  /// Ordered content blocks, validated by src/lib/content/schema.ts
+  blocks     Json
+  version    Int           @default(1)
+  published  Boolean       @default(true)
+  order      Int           @default(0)
+  source     ContentSource @default(SEED)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter   Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  topic     Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  progress  LessonProgress[]
+  bookmarks Bookmark[]
+  notes     Note[]
+  questions Question[]
+  files     FileAsset[]
+
+  @@unique([courseId, slug])
+  @@index([topicId, order])
+  @@index([chapterId])
+}
+
+/// Uploaded documents (syllabus PDFs, resources). Small files are stored in the database
+/// so the app works on free hosts without persistent disks; external links use `url`.
+model FileAsset {
+  id           String   @id @default(cuid())
+  title        String   @db.VarChar(200)
+  kind         String   @default("resource") @db.VarChar(20) // syllabus | resource
+  courseId     String?
+  chapterId    String?
+  lessonId     String?
+  url          String?  @db.VarChar(1000)
+  mimeType     String?  @db.VarChar(120)
+  sizeBytes    Int?
+  data         Bytes?   @db.MediumBlob
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  course     Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter    Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  lesson     Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  uploadedBy User     @relation(fields: [uploadedById], references: [id])
+
+  @@index([courseId])
+  @@index([chapterId])
+  @@index([lessonId])
+}
+
+/* ───────────────────────── Learning records ───────────────────────── */
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  status     String   @default("active") @db.VarChar(20) // active | dropped
+  enrolledAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+enum ProgressStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model LessonProgress {
+  id           String         @id @default(cuid())
+  userId       String
+  lessonId     String
+  status       ProgressStatus @default(IN_PROGRESS)
+  viewCount    Int            @default(1)
+  firstViewedAt DateTime      @default(now())
+  lastViewedAt DateTime       @default(now())
+  completedAt  DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([lessonId])
+  @@index([userId, lastViewedAt])
+}
+
+enum EventType {
+  LOGIN
+  LESSON_VIEWED
+  LESSON_COMPLETED
+  LESSON_REOPENED
+  PRACTICE_SUBMITTED
+  CODE_RUN
+  TEST_STARTED
+  TEST_SUBMITTED
+  BOOKMARK_ADDED
+  NOTE_SAVED
+}
+
+model LearningEvent {
+  id        String    @id @default(cuid())
+  userId    String
+  type      EventType
+  courseId  String?
+  lessonId  String?
+  refId     String?   @db.VarChar(64)
+  label     String?   @db.VarChar(255)
+  meta      Json?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+/// Private to the student. Not exposed to teachers.
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lessonId])
+}
+
+/* ───────────────────────── Practice question bank ───────────────────────── */
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  FILL_BLANK
+  SHORT_ANSWER
+  OUTPUT_PREDICTION
+  DEBUGGING
+  CODE_WRITING
+  LONG_ANSWER
+}
+
+model Question {
+  id          String        @id @default(cuid())
+  slug        String        @unique @db.VarChar(120)
+  type        QuestionType
+  courseId    String?
+  chapterId   String?
+  lessonId    String?
+  prompt      String        @db.Text
+  code        String?       @db.Text
+  /// Student-safe data: options, starter code, sample tests, blank count.
+  data        Json
+  /// Server-only answer key. Never serialise to students before they answer.
+  answer      Json
+  explanation String?       @db.Text
+  hint        String?       @db.Text
+  difficulty  Int           @default(1)
+  order       Int           @default(0)
+  source      ContentSource @default(SEED)
+  createdById String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  course    Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter   Chapter?          @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  lesson    Lesson?           @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  createdBy User?             @relation("QuestionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  attempts  PracticeAttempt[]
+
+  @@index([courseId, chapterId])
+  @@index([lessonId])
+}
+
+model PracticeAttempt {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  response   Json
+  isCorrect  Boolean
+  score      Float
+  maxScore   Float
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, questionId, createdAt])
+  @@index([questionId])
+}
+
+model CodeRun {
+  id            String   @id @default(cuid())
+  userId        String
+  context       String   @db.VarChar(20) // playground | practice | test | grading
+  refId         String?  @db.VarChar(64)
+  language      String   @db.VarChar(20)
+  source        String   @db.MediumText
+  stdin         String?  @db.Text
+  provider      String   @db.VarChar(20)
+  status        String   @db.VarChar(40)
+  stdout        String?  @db.MediumText
+  stderr        String?  @db.Text
+  compileOutput String?  @db.Text
+  timeMs        Int?
+  memoryKb      Int?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+/* ───────────────────────── Assessments ───────────────────────── */
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ResultRelease {
+  IMMEDIATE   // as soon as the student submits (auto-graded parts; manual parts show pending)
+  AFTER_DUE   // after the deadline passes
+  MANUAL      // when the teacher releases
+}
+
+model Assessment {
+  id                 String           @id @default(cuid())
+  slug               String?          @unique @db.VarChar(120)
+  courseId           String
+  title              String           @db.VarChar(200)
+  description        String?          @db.Text
+  instructions       String?          @db.Text
+  durationMinutes    Int?
+  availableFrom      DateTime?
+  dueAt              DateTime?
+  attemptLimit       Int              @default(1)
+  status             AssessmentStatus @default(DRAFT)
+  resultRelease      ResultRelease    @default(MANUAL)
+  resultsReleasedAt  DateTime?
+  showAnswerKey      Boolean          @default(true)
+  assignToAll        Boolean          @default(false)
+  /// Chapter ids this test covers (syllabus coverage).
+  coverage           Json?
+  currentVersionId   String?          @unique
+  createdById        String
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  course         Course                 @relation(fields: [courseId], references: [id])
+  createdBy      User                   @relation("AssessmentCreator", fields: [createdById], references: [id])
+  sections       AssessmentSection[]
+  questions      AssessmentQuestion[]
+  versions       AssessmentVersion[]    @relation("AssessmentVersions")
+  currentVersion AssessmentVersion?     @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  assignments    AssessmentAssignment[]
+  attempts       Attempt[]
+
+  @@index([courseId, status])
+}
+
+/// Editable draft structure. Publishing snapshots it into AssessmentVersion.
+model AssessmentSection {
+  id           String   @id @default(cuid())
+  assessmentId String
+  title        String   @db.VarChar(200)
+  instructions String?  @db.Text
+  order        Int      @default(0)
+
+  assessment Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  questions  AssessmentQuestion[]
+
+  @@index([assessmentId, order])
+}
+
+model AssessmentQuestion {
+  id           String       @id @default(cuid())
+  assessmentId String
+  sectionId    String
+  type         QuestionType
+  prompt       String       @db.Text
+  code         String?      @db.Text
+  /// Student-safe data (options, starter code, sample tests, number of blanks).
+  data         Json
+  /// Server-only answer key + teacher-only expected solutions.
+  answer       Json
+  /// Marking rubric for manual grading: [{ criterion, marks }]
+  rubric       Json?
+  explanation  String?      @db.Text
+  marks        Float
+  order        Int          @default(0)
+
+  assessment Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  section    AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId, order])
+}
+
+/// Immutable snapshot of a published test. Attempts always refer to the version they took.
+model AssessmentVersion {
+  id           String   @id @default(cuid())
+  assessmentId String
+  version      Int
+  totalMarks   Float
+  snapshot     Json
+  publishedAt  DateTime @default(now())
+
+  assessment  Assessment  @relation("AssessmentVersions", fields: [assessmentId], references: [id], onDelete: Cascade)
+  currentOf   Assessment? @relation("CurrentVersion")
+  attempts    Attempt[]
+
+  @@unique([assessmentId, version])
+}
+
+model AssessmentAssignment {
+  id           String    @id @default(cuid())
+  assessmentId String
+  userId       String?
+  groupId      String?
+  dueAt        DateTime?
+  createdAt    DateTime  @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user       User?      @relation("AssignmentStudent", fields: [userId], references: [id], onDelete: Cascade)
+  group      Group?     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, userId])
+  @@unique([assessmentId, groupId])
+  @@index([userId])
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+}
+
+enum GradingStatus {
+  NOT_SUBMITTED
+  PENDING_REVIEW
+  GRADED
+}
+
+model Attempt {
+  id            String        @id @default(cuid())
+  assessmentId  String
+  versionId     String
+  userId        String
+  attemptNumber Int
+  status        AttemptStatus @default(IN_PROGRESS)
+  gradingStatus GradingStatus @default(NOT_SUBMITTED)
+  startedAt     DateTime      @default(now())
+  /// Hard deadline for this attempt (start + duration, capped by the due date).
+  deadlineAt    DateTime?
+  submittedAt   DateTime?
+  score         Float?
+  maxScore      Float
+  updatedAt     DateTime      @updatedAt
+
+  assessment Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  version    AssessmentVersion @relation(fields: [versionId], references: [id])
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses  AttemptResponse[]
+  audits     GradeAudit[]
+
+  @@unique([assessmentId, userId, attemptNumber])
+  @@index([userId, status])
+  @@index([assessmentId, gradingStatus])
+}
+
+enum ResponseStatus {
+  UNANSWERED
+  CORRECT
+  INCORRECT
+  PARTIAL
+  PENDING_REVIEW
+}
+
+model AttemptResponse {
+  id              String         @id @default(cuid())
+  attemptId       String
+  /// AssessmentQuestion id as recorded in the version snapshot.
+  questionId      String         @db.VarChar(40)
+  /// Exactly what the student submitted. Never modified by grading.
+  response        Json?
+  markedForReview Boolean        @default(false)
+  savedAt         DateTime       @default(now())
+  autoScore       Float?
+  score           Float?
+  status          ResponseStatus @default(UNANSWERED)
+  feedback        String?        @db.Text
+  /// Output of running submitted code against the question's tests (grading aid).
+  evaluation      Json?
+  gradedById      String?
+  gradedAt        DateTime?
+
+  attempt  Attempt      @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  gradedBy User?        @relation("ResponseGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+  audits   GradeAudit[]
+
+  @@unique([attemptId, questionId])
+}
+
+model GradeAudit {
+  id            String   @id @default(cuid())
+  attemptId     String
+  responseId    String
+  graderId      String
+  kind          String   @db.VarChar(20) // grade | override | regrade
+  previousScore Float?
+  newScore      Float
+  reason        String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  attempt  Attempt         @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  response AttemptResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  grader   User            @relation(fields: [graderId], references: [id])
+
+  @@index([attemptId])
+  @@index([responseId])
+}
