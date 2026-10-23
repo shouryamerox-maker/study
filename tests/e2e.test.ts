@@ -102,6 +102,37 @@ run("end-to-end workflows", () => {
     expect((await bob.req(`/api/v1/notes/${note.json.note.id}`, { method: "PATCH", body: { body: "hacked" } })).status).toBe(404);
   });
 
+  it("persists highlights privately per student", async () => {
+    const course = await alice.req("/api/v1/courses/c-programming");
+    const lessonId = course.json.course.units[0].chapters[0].topics[0].lessons[0].id;
+    const body = { blockIndex: 1, startOffset: 4, endOffset: 20, text: "sample passage!!", prefix: "abc ", suffix: " def", color: "yellow" };
+    const created = await alice.req(`/api/v1/lessons/${lessonId}/highlights`, { body });
+    expect(created.status).toBe(200);
+    const id = created.json.highlight.id;
+    // Highlighting the same range again changes colour instead of duplicating.
+    const again = await alice.req(`/api/v1/lessons/${lessonId}/highlights`, { body: { ...body, color: "green" } });
+    expect(again.json.highlight.id).toBe(id);
+    expect(again.json.highlight.color).toBe("green");
+    // Survives signing out and back in.
+    await alice.req("/api/v1/auth/logout", { method: "POST" });
+    alice.cookie = "";
+    await alice.req("/api/v1/auth/login", { body: { email: `alice${stamp}@test.dev`, password: "password1" } });
+    const list = await alice.req(`/api/v1/lessons/${lessonId}/highlights`);
+    expect(list.json.highlights).toHaveLength(1);
+    expect(list.json.highlights[0]).toMatchObject({ id, color: "green", text: "sample passage!!" });
+    // Another student sees none of them and cannot change or delete them.
+    expect((await bob.req(`/api/v1/lessons/${lessonId}/highlights`)).json.highlights).toHaveLength(0);
+    expect((await bob.req(`/api/v1/highlights/${id}`, { method: "DELETE" })).status).toBe(404);
+    expect((await bob.req(`/api/v1/highlights/${id}`, { method: "PATCH", body: { color: "peach" } })).status).toBe(404);
+    // Invalid input is rejected.
+    expect((await alice.req(`/api/v1/lessons/${lessonId}/highlights`, { body: { ...body, startOffset: 30, endOffset: 10 } })).status).toBe(422);
+    expect((await alice.req(`/api/v1/lessons/${lessonId}/highlights`, { body: { ...body, color: "purple" } })).status).toBe(422);
+    // Revision page lists it; removing works.
+    expect((await alice.req("/revision")).json).toContain("sample passage!!");
+    expect((await alice.req(`/api/v1/highlights/${id}`, { method: "DELETE" })).status).toBe(200);
+    expect((await alice.req(`/api/v1/lessons/${lessonId}/highlights`)).json.highlights).toHaveLength(0);
+  });
+
   it("checks practice answers on the server without leaking keys first", async () => {
     const list = await alice.req("/api/v1/practice?mode=all");
     const qs = (await alice.req(`/api/v1/practice?chapterId=${list.json.questions[0]?.chapterId ?? ""}`)).json.questions;

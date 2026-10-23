@@ -1,5 +1,6 @@
 import { highlightC, tokenClass } from "@/lib/highlight";
 import { cn } from "@/components/ui";
+import { CopyButton } from "./CopyButton";
 
 /** Read-only highlighted code with optional line numbers and highlighted lines. */
 export function CodeView({
@@ -8,17 +9,19 @@ export function CodeView({
   lineNumbers = true,
   highlight,
   className,
+  copyable,
 }: {
   code: string;
   language?: string;
   lineNumbers?: boolean;
   highlight?: Set<number>;
   className?: string;
+  /** Show a copy button (defaults to on for full listings with line numbers). */
+  copyable?: boolean;
 }) {
   const cLike = ["c", "cpp", "java", "javascript"].includes(language);
   const lines = code.replace(/\n$/, "").split("\n");
-  // Highlight per line so line numbers stay aligned (multi-line comments are rare in lessons).
-  return (
+  const pre = (
     <pre className={cn("overflow-x-auto rounded-[8px] border border-border bg-code-bg py-2.5 text-[13px] leading-[1.6]", className)}>
       <code className="block min-w-max">
         {lines.map((line, i) => (
@@ -46,6 +49,15 @@ export function CodeView({
         ))}
       </code>
     </pre>
+  );
+  if (!(copyable ?? lineNumbers)) return pre;
+  return (
+    <div className="group relative">
+      {pre}
+      <div className="absolute right-2 top-2">
+        <CopyButton text={code} />
+      </div>
+    </div>
   );
 }
 

@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Bookmark, BookOpen, ClipboardCheck, GraduationCap, RotateCcw } from "lucide-react";
+import { ArrowRight, BookOpen, ClipboardCheck, GraduationCap, Highlighter, RotateCcw } from "lucide-react";
 import { requirePageUser } from "@/server/auth/guards";
 import { isStaff } from "@/server/auth/session";
 import { db } from "@/server/db";
-import { continueLearning, practiceStats, recentActivity } from "@/server/services/learning";
+import { continueLearning, practiceStats } from "@/server/services/learning";
 import { enrolledCoursesWithProgress } from "@/server/services/student";
 import { assignedAssessments, canStudentSeeResults, finalizeExpiredAttempts } from "@/server/assessments/attempts";
-import { Badge, EmptyState, LinkButton, ProgressBar, fmtDate, fmtMarks } from "@/components/ui";
-import { ActivityList } from "@/components/learn/ActivityList";
+import { Badge, EmptyState, LinkButton, ProgressBar, fmtDate, fmtMarks, fmtRelative } from "@/components/ui";
 import { percent } from "@/lib/grading";
 
 export const metadata = { title: "Dashboard" };
@@ -18,17 +17,23 @@ export default async function Dashboard() {
   if (isStaff(user.role)) redirect("/teacher");
   await finalizeExpiredAttempts({ userId: user.id });
 
-  const [courses, cont, tests, attempts, practice, events, bookmarks] = await Promise.all([
+  const [courses, cont, tests, attempts, practice, recent, revisionCounts] = await Promise.all([
     enrolledCoursesWithProgress(user.id),
     continueLearning(user.id),
     assignedAssessments(user.id),
     db.attempt.findMany({ where: { userId: user.id }, include: { assessment: true }, orderBy: { startedAt: "desc" } }),
     practiceStats(user.id),
-    recentActivity(user.id, 5),
-    db.bookmark.findMany({ where: { userId: user.id }, include: { lesson: { include: { course: { select: { slug: true } } } } }, orderBy: { createdAt: "desc" }, take: 4 }),
+    db.lessonProgress.findMany({
+      where: { userId: user.id, lesson: { published: true } },
+      orderBy: { lastViewedAt: "desc" },
+      take: 4,
+      include: { lesson: { select: { slug: true, title: true, course: { select: { slug: true } }, chapter: { select: { title: true } } } } },
+    }),
+    Promise.all([db.highlight.count({ where: { userId: user.id } }), db.note.count({ where: { userId: user.id } }), db.bookmark.count({ where: { userId: user.id } })]),
   ]);
 
   const firstName = user.name.split(" ")[0];
+  const revision = { highlights: revisionCounts[0], notes: revisionCounts[1], bookmarks: revisionCounts[2] };
   const now = new Date();
   const current = cont ? courses.find((c) => c.tree.id === cont.lesson.courseId) : courses[0];
   const chapterProgress = cont && current ? current.progress.chapters.get(cont.lesson.chapterId) : null;
@@ -144,22 +149,35 @@ export default async function Dashboard() {
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <TestsList pending={pendingTests} released={released} awaiting={awaiting} />
         <section>
-          <SectionTitle title="Recent activity" href="/progress" linkLabel="My progress" />
-          {events.length === 0 ? <p className="text-[13.5px] text-muted">Your learning activity will appear here.</p> : <div className="-mx-4"><ActivityList events={events} /></div>}
-          {bookmarks.length > 0 && (
-            <div className="mt-6">
-              <SectionTitle title="Bookmarks" href="/bookmarks" linkLabel="All" />
-              <ul className="space-y-1">
-                {bookmarks.map((b) => (
-                  <li key={b.id}>
-                    <Link href={`/learn/${b.lesson.course.slug}/${b.lesson.slug}`} className="flex items-center gap-2 py-1 text-[13.5px] hover:text-primary">
-                      <Bookmark size={13} className="shrink-0 text-primary" /> <span className="truncate">{b.lesson.title}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <SectionTitle title="Recently studied" href="/progress" linkLabel="My progress" />
+          {recent.length === 0 ? (
+            <p className="text-[13.5px] text-muted">Lessons you open will appear here.</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {recent.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/learn/${p.lesson.course.slug}/${p.lesson.slug}`} className="-mx-3 flex items-center gap-3 rounded-[8px] px-3 py-2 hover:bg-surface">
+                    <span className={p.status === "COMPLETED" ? "h-2 w-2 shrink-0 rounded-full bg-success" : "h-2 w-2 shrink-0 rounded-full border border-pending"} aria-label={p.status === "COMPLETED" ? "Completed" : "In progress"} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px]">{p.lesson.title}</span>
+                      <span className="block truncate text-[12px] text-muted">{p.lesson.chapter.title}</span>
+                    </span>
+                    <span className="shrink-0 text-[11.5px] text-faint">{fmtRelative(p.lastViewedAt)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
+          <Link href="/revision" className="mt-6 flex items-center gap-3 rounded-[10px] border border-border bg-surface px-4 py-3 hover:border-primary">
+            <Highlighter size={16} className="shrink-0 text-primary" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-medium">Revision</span>
+              <span className="block text-[12px] text-muted">
+                {revision.highlights} highlight{revision.highlights === 1 ? "" : "s"} · {revision.notes} note{revision.notes === 1 ? "" : "s"} · {revision.bookmarks} bookmark{revision.bookmarks === 1 ? "" : "s"}
+              </span>
+            </span>
+            <ArrowRight size={14} className="shrink-0 text-faint" aria-hidden />
+          </Link>
         </section>
       </div>
     </div>

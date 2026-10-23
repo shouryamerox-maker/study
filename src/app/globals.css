@@ -71,6 +71,30 @@
   }
 }
 
+/* Lesson highlighter (CSS Custom Highlight API — paints without changing the DOM) */
+::highlight(sl-yellow) {
+  background-color: #f7e58a;
+  color: inherit;
+}
+::highlight(sl-green) {
+  background-color: #cfe3c8;
+  color: inherit;
+}
+::highlight(sl-peach) {
+  background-color: #f6cdb4;
+  color: inherit;
+}
+
+/* Distraction-free reading mode (toggled on lesson pages) */
+html[data-reading] [data-shell-sidebar],
+html[data-reading] [data-shell-header],
+html[data-reading] [data-lesson-aside] {
+  display: none !important;
+}
+html[data-reading] [data-shell-content] {
+  padding-left: 0 !important;
+}
+
 @layer components {
   .card {
     background: var(--color-surface);

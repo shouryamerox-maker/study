@@ -13,9 +13,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const staff = isStaff(user.role);
   const published = staff ? {} : { published: true };
 
-  const [subjects, chapters, lessons, questions] =
+  const [subjects, chapters, lessons, questions, myNotes, myHighlights] =
     q.length < 2
-      ? [[], [], [], []]
+      ? [[], [], [], [], [], []]
       : await Promise.all([
           db.course.findMany({ where: { ...published, OR: [{ title: { contains: q } }, { summary: { contains: q } }, { subject: { name: { contains: q } } }] }, include: { subject: true }, take: 10 }),
           db.chapter.findMany({ where: { course: published, OR: [{ title: { contains: q } }, { summary: { contains: q } }] }, include: { course: true }, take: 20 }),
@@ -25,12 +25,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             take: 30,
           }),
           db.question.findMany({ where: { course: published, prompt: { contains: q } }, include: { chapter: true }, take: 20 }),
+          // Only the signed-in user's own private notes and highlights.
+          db.note.findMany({ where: { userId: user.id, body: { contains: q } }, include: { lesson: { select: { slug: true, title: true, course: { select: { slug: true } } } } }, take: 15 }),
+          db.highlight.findMany({ where: { userId: user.id, text: { contains: q } }, include: { lesson: { select: { slug: true, title: true, course: { select: { slug: true } } } } }, take: 15 }),
         ]);
-  const total = subjects.length + chapters.length + lessons.length + questions.length;
+  const total = subjects.length + chapters.length + lessons.length + questions.length + myNotes.length + myHighlights.length;
 
   return (
     <>
-      <PageHeader title="Search" description={q ? `Results for “${q}”` : "Search across courses, chapters, lessons and practice questions."} />
+      <PageHeader title="Search" description={q ? `Results for “${q}”` : "Search courses, chapters, lessons, practice questions and your own notes and highlights."} />
       <form action="/search" className="mb-5 flex max-w-xl gap-2">
         <label htmlFor="q" className="sr-only">
           Search
@@ -87,6 +90,31 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   <div className="text-[12px] text-muted">
                     {l.chapter.title} · {l.summary}
                   </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+        {(myNotes.length > 0 || myHighlights.length > 0) && (
+          <Card>
+            <CardHeader title="Your notes and highlights" description="Private to you." />
+            <ul className="divide-y divide-divider">
+              {myHighlights.map((h) => (
+                <li key={h.id} className="px-4 py-2.5">
+                  <Badge tone="pending">Highlight</Badge>{" "}
+                  <Link href={`/learn/${h.lesson.course.slug}/${h.lesson.slug}`} className="text-[13.5px] hover:text-primary">
+                    “{h.text.length > 160 ? h.text.slice(0, 160) + "…" : h.text}”
+                  </Link>
+                  <div className="text-[12px] text-muted">{h.lesson.title}</div>
+                </li>
+              ))}
+              {myNotes.map((n) => (
+                <li key={n.id} className="px-4 py-2.5">
+                  <Badge tone="accent">Note</Badge>{" "}
+                  <Link href={`/learn/${n.lesson.course.slug}/${n.lesson.slug}`} className="text-[13.5px] hover:text-primary">
+                    {n.body.length > 160 ? n.body.slice(0, 160) + "…" : n.body}
+                  </Link>
+                  <div className="text-[12px] text-muted">{n.lesson.title}</div>
                 </li>
               ))}
             </ul>

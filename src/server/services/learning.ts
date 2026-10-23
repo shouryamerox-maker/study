@@ -108,32 +108,6 @@ export function courseContinueLesson(tree: CourseTree, progress: Awaited<ReturnT
   return next ? { ...next, resume: !!inProgress, started: progress.size > 0 } : null;
 }
 
-/** Serializable outline for the syllabus view (no lesson bodies). */
-export function buildOutline(tree: CourseTree, computed: ReturnType<typeof computeCourseProgress> | null, progress: Awaited<ReturnType<typeof progressMap>> | null) {
-  let n = 0;
-  return tree.units.map((u) => ({
-    id: u.id,
-    title: u.title,
-    chapters: u.chapters.map((c) => {
-      const p = computed?.chapters.get(c.id);
-      return {
-        id: c.id,
-        number: ++n,
-        title: c.title,
-        summary: c.summary,
-        state: p?.state ?? null,
-        done: p?.done ?? 0,
-        total: p?.total ?? c.topics.reduce((s, t) => s + t.lessons.length, 0),
-        covered: !!c.coveredInClassAt,
-        files: c.files.map((f) => ({ id: f.id, title: f.title, url: f.url })),
-        lessons: c.topics.flatMap((t) =>
-          t.lessons.map((l) => ({ id: l.id, slug: l.slug, title: l.title, estMinutes: l.estMinutes, published: l.published, status: progress?.get(l.id)?.status ?? null })),
-        ),
-      };
-    }),
-  }));
-}
-
 export async function isLessonLocked(userId: string, lesson: { chapterId: string; courseId: string }) {
   const chapter = await db.chapter.findUniqueOrThrow({ where: { id: lesson.chapterId }, include: { course: true } });
   if (!chapter.isAvailable || (chapter.availableFrom && chapter.availableFrom > new Date())) return true;

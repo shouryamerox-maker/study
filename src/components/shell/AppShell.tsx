@@ -12,14 +12,14 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
         Skip to content
       </a>
       <Sidebar staff={staff} />
-      <div className="lg:pl-56">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-page/90 pl-14 pr-4 backdrop-blur-[2px] lg:px-6">
+      <div className="lg:pl-56" data-shell-content>
+        <header data-shell-header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-page/90 pl-14 pr-4 backdrop-blur-[2px] lg:px-6">
           <form action="/search" role="search" className="relative w-full max-w-md">
             <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" aria-hidden />
             <label htmlFor="global-search" className="sr-only">
-              Search lessons, chapters and questions
+              Search lessons, chapters, questions and your notes
             </label>
-            <input id="global-search" name="q" type="search" placeholder="Search lessons, chapters, questions…" className="input h-8 bg-surface pl-8 text-[13px]" />
+            <input id="global-search" name="q" type="search" placeholder="Search lessons, chapters, your notes…" className="input h-8 bg-surface pl-8 text-[13px]" />
           </form>
           <div className="ml-auto">
             <UserMenu name={user.name} email={user.email} role={user.role} color={user.avatarColor} staff={staff} />

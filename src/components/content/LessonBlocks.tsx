@@ -310,7 +310,10 @@ export function LessonBlocks({ blocks, lessonId, runnable }: { blocks: Block[]; 
   return (
     <div className="space-y-6">
       {blocks.map((b, i) => (
-        <LessonBlock key={i} block={b} index={i} lessonId={lessonId} runnable={runnable} />
+        // data-hl-block anchors student highlights to a block; its index is stable for a lesson version.
+        <div key={i} data-hl-block={i}>
+          <LessonBlock block={b} index={i} lessonId={lessonId} runnable={runnable} />
+        </div>
       ))}
     </div>
   );

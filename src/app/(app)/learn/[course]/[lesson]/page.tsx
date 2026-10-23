@@ -13,6 +13,8 @@ import { Disclosure } from "@/components/Disclosure";
 import { LessonBlocks } from "@/components/content/LessonBlocks";
 import { BookmarkButton, CompleteButton, NotesPanel, ViewTracker } from "@/components/learn/LessonControls";
 import { PracticeQuestion } from "@/components/practice/PracticeQuestion";
+import { Highlighter } from "@/components/learn/Highlighter";
+import { ReadingModeToggle, ReadingProgress } from "@/components/learn/ReadingTools";
 
 export async function generateMetadata({ params }: { params: Promise<{ course: string; lesson: string }> }) {
   const { course, lesson } = await params;
@@ -51,15 +53,16 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
 
   const chapter = tree.units.flatMap((u) => u.chapters).find((c) => c.id === lesson.chapterId)!;
   const unit = tree.units.find((u) => u.chapters.some((c) => c.id === chapter.id))!;
-  // Returning to the syllabus re-opens this chapter and scrolls to it.
-  const syllabusHref = `/syllabus/${tree.slug}?open=${chapter.id}#ch-${chapter.id}`;
+  // "Back" returns to this lesson's unit, scrolled to its chapter.
+  const unitHref = `/syllabus/${tree.slug}/${unit.slug}`;
+  const syllabusHref = `${unitHref}#ch-${chapter.id}`;
   const shortUnit = unit.title.replace(/^Unit\s+\d+\s*·\s*/, "");
-  const crumbs = [{ href: `/syllabus/${tree.slug}`, label: tree.title }, { label: shortUnit }, { href: syllabusHref, label: chapter.title }];
+  const crumbs = [{ href: `/syllabus/${tree.slug}`, label: tree.title }, { href: unitHref, label: shortUnit }, { href: syllabusHref, label: chapter.title }];
 
   if (!staff && (await isLessonLocked(user.id, lesson))) {
     return (
       <div className="mx-auto max-w-[760px]">
-        <BackLink href={syllabusHref} label="Back to syllabus" />
+        <BackLink href={syllabusHref} label={`Back to ${shortUnit}`} />
         <Crumbs items={crumbs} />
         <h1 className="mt-2 text-[24px] font-semibold">{lesson.title}</h1>
         <EmptyState icon={<Lock size={18} />} title="This lesson is locked">
@@ -119,17 +122,21 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
   return (
     <div className="mx-auto grid max-w-[1120px] gap-8 xl:grid-cols-[minmax(0,760px)_260px] xl:justify-center">
       <ViewTracker lessonId={lesson.id} enabled={!staff} />
+      <ReadingProgress targetId="lesson-body" />
       <article className="min-w-0">
         <header className="mb-8">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <BackLink href={syllabusHref} label="Back to syllabus" className="mb-0" />
-            {staff ? (
-              <LinkButton href={`/teacher/lessons/${lesson.id}`} variant="ghost" size="sm">
-                Edit lesson
-              </LinkButton>
-            ) : (
-              <BookmarkButton lessonId={lesson.id} bookmarked={!!bookmark} />
-            )}
+            <BackLink href={syllabusHref} label={`Back to ${shortUnit}`} className="mb-0" />
+            <div className="flex items-center gap-1.5">
+              <ReadingModeToggle />
+              {staff ? (
+                <LinkButton href={`/teacher/lessons/${lesson.id}`} variant="ghost" size="sm">
+                  Edit lesson
+                </LinkButton>
+              ) : (
+                <BookmarkButton lessonId={lesson.id} bookmarked={!!bookmark} />
+              )}
+            </div>
           </div>
           <div className="mt-3">
             <Crumbs items={crumbs} />
@@ -149,7 +156,7 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
         </header>
 
         {/* Small screens: chapter navigation as a collapsed section above the lesson. */}
-        <div className="mb-6 rounded-[10px] border border-border bg-surface xl:hidden">
+        <div data-lesson-aside className="mb-6 rounded-[10px] border border-border bg-surface xl:hidden">
           <Disclosure
             title={<span className="text-[13.5px] font-medium">In this chapter · {chapter.title}</span>}
             meta={<span className="text-[12px] tabular-nums text-muted">{chapterDone}/{chapterLessons.length}</span>}
@@ -161,7 +168,12 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
         </div>
 
         {parsed.success ? (
-          <LessonBlocks blocks={parsed.data} lessonId={lesson.id} runnable={runnable} />
+          <div id="lesson-body">
+            <p className="mb-6 text-[12.5px] text-faint">Tip: select any passage to highlight it. Your highlights are private and appear in Revision.</p>
+            <Highlighter lessonId={lesson.id}>
+              <LessonBlocks blocks={parsed.data} lessonId={lesson.id} runnable={runnable} />
+            </Highlighter>
+          </div>
         ) : (
           <Alert tone="danger" title="This lesson's content could not be displayed">
             The stored content does not match the content format. A teacher should open the lesson editor to fix it.
@@ -209,14 +221,14 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
               </Link>
             ) : (
               <Link href={syllabusHref} className="rounded-[8px] px-3 py-2 text-right text-[14px] font-medium text-primary hover:bg-sidebar">
-                End of course — back to syllabus
+                End of course — back to the syllabus
               </Link>
             )}
           </nav>
         </footer>
       </article>
 
-      <aside className="hidden space-y-5 xl:sticky xl:top-20 xl:block xl:self-start" aria-label="Chapter navigation">
+      <aside data-lesson-aside className="hidden space-y-5 xl:sticky xl:top-20 xl:block xl:self-start" aria-label="Chapter navigation">
         <div>
           <div className="mb-1 px-2 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-faint">In this chapter</div>
           <Link href={syllabusHref} className="mb-2 block px-2 text-[13.5px] font-semibold hover:text-primary">

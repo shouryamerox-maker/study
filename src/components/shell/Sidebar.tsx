@@ -47,7 +47,7 @@ const studentNav: { group?: string; items: Item[] }[] = [
   {
     group: "You",
     items: [
-      { href: "/bookmarks", label: "Bookmarks & Notes", icon: BookMarked },
+      { href: "/revision", label: "Revision", icon: BookMarked, match: ["/bookmarks"] },
       { href: "/progress", label: "My Progress", icon: TrendingUp },
       { href: "/profile", label: "Profile", icon: User },
       { href: "/settings", label: "Settings", icon: Settings },
@@ -138,13 +138,14 @@ export function Sidebar({ staff }: { staff: boolean }) {
     <>
       <button
         type="button"
+        data-shell-sidebar
         className="fixed left-3 top-3 z-40 inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-border bg-surface text-ink lg:hidden"
         onClick={() => setOpen(true)}
         aria-label="Open navigation"
       >
         <Menu size={16} />
       </button>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-border bg-sidebar lg:block">{content}</aside>
+      <aside data-shell-sidebar className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-border bg-sidebar lg:block">{content}</aside>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
           <div className="absolute inset-0 bg-ink/30" onClick={() => setOpen(false)} />
