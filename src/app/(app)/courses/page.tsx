@@ -6,7 +6,7 @@ import { enrolledCoursesWithProgress } from "@/server/services/student";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, ProgressBar } from "@/components/ui";
 import { EnrollButton } from "@/components/learn/EnrollButton";
 
-export const metadata = { title: "My Courses" };
+export const metadata = { title: "Study Material" };
 
 export default async function CoursesPage() {
   const user = await requirePageUser();
@@ -23,7 +23,7 @@ export default async function CoursesPage() {
 
   return (
     <>
-      <PageHeader title="My Courses" description="Courses you are enrolled in, and others you can join." />
+      <PageHeader title="Study Material" description="Courses with lessons and practice. The official university syllabus is under Syllabus." />
       <h2 className="label-caps mb-2">Enrolled</h2>
       {mine.length === 0 ? (
         <Card className="mb-6">
@@ -54,8 +54,8 @@ export default async function CoursesPage() {
                 </p>
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <LinkButton href={`/syllabus/${tree.slug}`} size="sm">
-                  <BookOpen size={14} /> Open syllabus
+                <LinkButton href={`/study/${tree.slug}`} size="sm">
+                  <BookOpen size={14} /> Open course
                 </LinkButton>
                 <EnrollButton slug={tree.slug} enrolled />
               </div>
@@ -76,7 +76,7 @@ export default async function CoursesPage() {
                 <Badge>{c.level}</Badge>
               </div>
               <h3 className="text-[16px] font-semibold">
-                <Link href={`/syllabus/${c.slug}`} className="hover:text-primary">
+                <Link href={`/study/${c.slug}`} className="hover:text-primary">
                   {c.title}
                 </Link>
               </h3>

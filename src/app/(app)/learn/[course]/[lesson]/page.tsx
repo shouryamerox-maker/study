@@ -54,10 +54,10 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
   const chapter = tree.units.flatMap((u) => u.chapters).find((c) => c.id === lesson.chapterId)!;
   const unit = tree.units.find((u) => u.chapters.some((c) => c.id === chapter.id))!;
   // "Back" returns to this lesson's unit, scrolled to its chapter.
-  const unitHref = `/syllabus/${tree.slug}/${unit.slug}`;
+  const unitHref = `/study/${tree.slug}/${unit.slug}`;
   const syllabusHref = `${unitHref}#ch-${chapter.id}`;
   const shortUnit = unit.title.replace(/^Unit\s+\d+\s*·\s*/, "");
-  const crumbs = [{ href: `/syllabus/${tree.slug}`, label: tree.title }, { href: unitHref, label: shortUnit }, { href: syllabusHref, label: chapter.title }];
+  const crumbs = [{ href: `/study/${tree.slug}`, label: tree.title }, { href: unitHref, label: shortUnit }, { href: syllabusHref, label: chapter.title }];
 
   if (!staff && (await isLessonLocked(user.id, lesson))) {
     return (

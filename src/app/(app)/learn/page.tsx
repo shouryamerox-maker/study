@@ -13,5 +13,5 @@ export default async function LearnIndex() {
   if (!course) redirect("/courses");
   const tree = await getCourseTree(course.slug);
   const first = tree ? orderedLessons(tree)[0] : null;
-  redirect(first ? `/learn/${course.slug}/${first.slug}` : `/syllabus/${course.slug}`);
+  redirect(first ? `/learn/${course.slug}/${first.slug}` : `/study/${course.slug}`);
 }

@@ -38,7 +38,7 @@ export default async function TeacherCourses() {
               <Link href={`/teacher/courses/${c.id}`} className="text-primary hover:underline">
                 Edit syllabus
               </Link>
-              <Link href={`/syllabus/${c.slug}`} className="text-muted hover:text-ink">
+              <Link href={`/study/${c.slug}`} className="text-muted hover:text-ink">
                 Preview as student
               </Link>
             </div>

@@ -21,7 +21,7 @@ export default async function EditCourse({ params }: { params: Promise<{ id: str
         title={tree.title}
         description={tree.summary}
         actions={
-          <LinkButton href={`/syllabus/${tree.slug}`} variant="secondary" size="sm">
+          <LinkButton href={`/study/${tree.slug}`} variant="secondary" size="sm">
             Preview as student
           </LinkButton>
         }

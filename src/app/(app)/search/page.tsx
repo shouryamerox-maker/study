@@ -54,7 +54,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             <ul className="divide-y divide-divider">
               {subjects.map((c) => (
                 <li key={c.id} className="px-4 py-2.5">
-                  <Link href={`/syllabus/${c.slug}`} className="font-medium hover:text-primary">
+                  <Link href={`/study/${c.slug}`} className="font-medium hover:text-primary">
                     {c.title}
                   </Link>{" "}
                   <Badge>{c.subject.name}</Badge>
@@ -69,7 +69,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             <ul className="divide-y divide-divider">
               {chapters.map((c) => (
                 <li key={c.id} className="px-4 py-2.5">
-                  <Link href={`/syllabus/${c.course.slug}`} className="font-medium hover:text-primary">
+                  <Link href={`/study/${c.course.slug}`} className="font-medium hover:text-primary">
                     {c.title}
                   </Link>
                   <div className="text-[12px] text-muted">{c.course.title}</div>

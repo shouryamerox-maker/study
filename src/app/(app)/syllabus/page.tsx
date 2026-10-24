@@ -1,40 +1,39 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ListTree } from "lucide-react";
+import { ChevronRight, FileText } from "lucide-react";
 import { requirePageUser } from "@/server/auth/guards";
-import { db } from "@/server/db";
-import { Card, EmptyState, LinkButton, PageHeader } from "@/components/ui";
+import { shardaCseAiml2026 as programme } from "@content/syllabus/sharda-btech-cse-aiml-2026";
+import { PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Syllabus" };
 
-/** Opens the syllabus of the student's course (or lists courses if there are several). */
-export default async function SyllabusIndex() {
-  const user = await requirePageUser();
-  const enrolled = await db.enrollment.findMany({ where: { userId: user.id, status: "active", course: { published: true } }, include: { course: true } });
-  if (enrolled.length === 1) redirect(`/syllabus/${enrolled[0].course.slug}`);
-  const courses = enrolled.length ? enrolled.map((e) => e.course) : await db.course.findMany({ where: { published: true }, orderBy: { order: "asc" } });
+/** Official university syllabus — separate from Study Material. */
+export default async function SyllabusHome() {
+  await requirePageUser();
   return (
-    <>
-      <PageHeader title="Syllabus" description="Choose a course to see its units, chapters, topics and lessons." />
-      {courses.length === 0 ? (
-        <Card>
-          <EmptyState icon={<ListTree size={18} />} title="No courses yet" />
-        </Card>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {courses.map((c) => (
-            <Card key={c.id} className="p-4">
-              <Link href={`/syllabus/${c.slug}`} className="text-[15px] font-semibold hover:text-primary">
-                {c.title}
-              </Link>
-              <p className="mt-1 line-clamp-2 text-[13px] text-muted">{c.summary}</p>
-              <LinkButton href={`/syllabus/${c.slug}`} size="sm" variant="secondary" className="mt-3">
-                View syllabus
-              </LinkButton>
-            </Card>
-          ))}
-        </div>
-      )}
-    </>
+    <div className="mx-auto max-w-[820px]">
+      <PageHeader title="Syllabus" description="Your official university syllabus: subjects, units, topics and what each exam covers." />
+      <div className="-mt-1 mb-6 text-[13.5px] text-muted">
+        <span className="font-medium text-ink">{programme.university}</span> · {programme.programme} · Batch {programme.batch}
+      </div>
+      <ul className="overflow-hidden rounded-[12px] border border-border bg-surface">
+        {programme.semesters.map((s, i) => (
+          <li key={s.slug} className={i > 0 ? "border-t border-divider" : undefined}>
+            <Link href={`/syllabus/${s.slug}`} className="group flex items-center gap-4 px-5 py-5 hover:bg-sidebar">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[17px] font-semibold group-hover:text-primary">{s.name}</span>
+                <span className="mt-0.5 block text-[13px] text-muted">
+                  {s.subjects.length} subjects · {s.subjects.map((x) => x.code).join(", ")}
+                </span>
+              </span>
+              <ChevronRight size={18} className="text-faint group-hover:text-primary" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 flex items-start gap-2 text-[12.5px] text-faint">
+        <FileText size={13} className="mt-0.5 shrink-0" aria-hidden />
+        Source: {programme.sourceFile} ({programme.sourcePages}). Other semesters will appear here when they are added. Lessons and practice are under Study Material.
+      </p>
+    </div>
   );
 }

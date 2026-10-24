@@ -31,9 +31,9 @@ const studentNav: { group?: string; items: Item[] }[] = [
   {
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/courses", label: "My Courses", icon: GraduationCap },
       { href: "/syllabus", label: "Syllabus", icon: ListTree },
-      { href: "/learn", label: "Learn", icon: BookOpen },
+      { href: "/courses", label: "Study Material", icon: GraduationCap, match: ["/study"] },
+      { href: "/learn", label: "Continue learning", icon: BookOpen },
     ],
   },
   {
@@ -60,7 +60,8 @@ const teacherNav: { group?: string; items: Item[] }[] = [
     items: [
       { href: "/teacher", label: "Dashboard", icon: LayoutDashboard },
       { href: "/teacher/students", label: "Students", icon: Users },
-      { href: "/teacher/courses", label: "Courses & Syllabus", icon: ListTree },
+      { href: "/teacher/courses", label: "Courses & Lessons", icon: GraduationCap },
+      { href: "/syllabus", label: "University Syllabus", icon: ListTree },
     ],
   },
   {

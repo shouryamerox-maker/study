@@ -126,8 +126,8 @@ export default async function Dashboard() {
             <BookOpen size={15} /> {cont?.reason === "resume" ? "Continue lesson" : "Start lesson"}
           </LinkButton>
           {current && (
-            <LinkButton href={`/syllabus/${current.tree.slug}${cont ? `?open=${cont.lesson.chapterId}#ch-${cont.lesson.chapterId}` : ""}`} variant="secondary">
-              View syllabus
+            <LinkButton href={`/study/${current.tree.slug}${cont ? `?open=${cont.lesson.chapterId}#ch-${cont.lesson.chapterId}` : ""}`} variant="secondary">
+              Course outline
             </LinkButton>
           )}
         </div>
