@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-125 0 885 400" font-family="Inter, Arial, sans-serif" font-size="17" role="img" aria-labelledby="t d">
+  <title id="t">Fluid mosaic model of the plasma membrane</title>
+  <desc id="d">A phospholipid bilayer with hydrophilic heads facing the watery outside and inside of the cell and hydrophobic tails facing each other. Integral proteins span the bilayer, including a channel protein; peripheral proteins sit on the surface; cholesterol sits among the lipids; glycoproteins and glycolipids carry carbohydrate chains on the outer surface.</desc>
+  <rect x="-125" width="885" height="400" fill="#ffffff"/>
+  <text x="380" y="40" text-anchor="middle" fill="#7a6f63" font-size="15">OUTSIDE THE CELL (watery)</text>
+  <text x="380" y="388" text-anchor="middle" fill="#7a6f63" font-size="15">INSIDE THE CELL — cytoplasm (watery)</text>
+  <!-- lipid bilayer: heads + tails -->
+  <g id="lipid">
+  </g>
+  <g>
+    <!-- generated heads/tails top layer -->
+    <g fill="#f6cdb4" stroke="#a85c40" stroke-width="1.5">
+      <circle cx="60" cy="150" r="10"/><circle cx="85" cy="150" r="10"/><circle cx="110" cy="150" r="10"/><circle cx="135" cy="150" r="10"/>
+      <circle cx="160" cy="150" r="10"/><circle cx="185" cy="150" r="10"/>
+      <circle cx="300" cy="150" r="10"/><circle cx="325" cy="150" r="10"/><circle cx="350" cy="150" r="10"/><circle cx="375" cy="150" r="10"/>
+      <circle cx="400" cy="150" r="10"/>
+      <circle cx="505" cy="150" r="10"/><circle cx="530" cy="150" r="10"/><circle cx="555" cy="150" r="10"/><circle cx="580" cy="150" r="10"/>
+      <circle cx="605" cy="150" r="10"/><circle cx="630" cy="150" r="10"/><circle cx="655" cy="150" r="10"/><circle cx="680" cy="150" r="10"/><circle cx="705" cy="150" r="10"/>
+      <circle cx="60" cy="270" r="10"/><circle cx="85" cy="270" r="10"/><circle cx="110" cy="270" r="10"/><circle cx="135" cy="270" r="10"/>
+      <circle cx="160" cy="270" r="10"/><circle cx="185" cy="270" r="10"/>
+      <circle cx="300" cy="270" r="10"/><circle cx="325" cy="270" r="10"/><circle cx="350" cy="270" r="10"/><circle cx="375" cy="270" r="10"/>
+      <circle cx="400" cy="270" r="10"/>
+      <circle cx="505" cy="270" r="10"/><circle cx="530" cy="270" r="10"/><circle cx="555" cy="270" r="10"/><circle cx="580" cy="270" r="10"/>
+      <circle cx="605" cy="270" r="10"/><circle cx="630" cy="270" r="10"/><circle cx="655" cy="270" r="10"/><circle cx="680" cy="270" r="10"/><circle cx="705" cy="270" r="10"/>
+    </g>
+    <g stroke="#b07830" stroke-width="2.2" fill="none">
+      <path d="M57 160 V205 M63 160 V205 M82 160 V205 M88 160 V205 M107 160 V205 M113 160 V205 M132 160 V205 M138 160 V205 M157 160 V205 M163 160 V205 M182 160 V205 M188 160 V205"/>
+      <path d="M297 160 V205 M303 160 V205 M322 160 V205 M328 160 V205 M347 160 V205 M353 160 V205 M372 160 V205 M378 160 V205 M397 160 V205 M403 160 V205"/>
+      <path d="M502 160 V205 M508 160 V205 M527 160 V205 M533 160 V205 M552 160 V205 M558 160 V205 M577 160 V205 M583 160 V205 M602 160 V205 M608 160 V205 M627 160 V205 M633 160 V205 M652 160 V205 M658 160 V205 M677 160 V205 M683 160 V205 M702 160 V205 M708 160 V205"/>
+      <path d="M57 215 V260 M63 215 V260 M82 215 V260 M88 215 V260 M107 215 V260 M113 215 V260 M132 215 V260 M138 215 V260 M157 215 V260 M163 215 V260 M182 215 V260 M188 215 V260"/>
+      <path d="M297 215 V260 M303 215 V260 M322 215 V260 M328 215 V260 M347 215 V260 M353 215 V260 M372 215 V260 M378 215 V260 M397 215 V260 M403 215 V260"/>
+      <path d="M502 215 V260 M508 215 V260 M527 215 V260 M533 215 V260 M552 215 V260 M558 215 V260 M577 215 V260 M583 215 V260 M602 215 V260 M608 215 V260 M627 215 V260 M633 215 V260 M652 215 V260 M658 215 V260 M677 215 V260 M683 215 V260 M702 215 V260 M708 215 V260"/>
+    </g>
+  </g>
+  <!-- integral protein spanning -->
+  <rect x="205" y="120" width="78" height="180" rx="34" fill="#cfe3c8" stroke="#4a7850" stroke-width="3"/>
+  <!-- channel protein -->
+  <g><rect x="418" y="125" width="34" height="170" rx="14" fill="#cfe3c8" stroke="#4a7850" stroke-width="3"/><rect x="455" y="125" width="34" height="170" rx="14" fill="#cfe3c8" stroke="#4a7850" stroke-width="3"/></g>
+  <!-- peripheral protein -->
+  <ellipse cx="630" cy="296" rx="36" ry="18" fill="#e7d3f1" stroke="#7c4f9a" stroke-width="3"/>
+  <!-- cholesterol -->
+  <rect x="117" y="168" width="10" height="34" rx="3" fill="#7a6f63"/>
+  <!-- carbohydrate chains -->
+  <g fill="#f7e58a" stroke="#9a7a14" stroke-width="1.5"><circle cx="244" cy="108" r="7"/><circle cx="236" cy="94" r="7"/><circle cx="252" cy="80" r="7"/><circle cx="555" cy="132" r="7"/><circle cx="548" cy="118" r="7"/><circle cx="560" cy="104" r="7"/></g>
+
+  <g stroke="#2e2420" stroke-width="1.4" fill="none">
+    <path d="M50 145 L-5 118"/><path d="M57 230 L-5 230"/><path d="M244 300 L244 340"/><path d="M470 125 L470 70"/>
+    <path d="M630 314 L630 350"/><path d="M122 200 L122 330"/><path d="M240 76 L200 64"/><path d="M560 98 L610 70"/>
+  </g>
+  <g fill="#2e2420" font-size="16">
+    <text x="-120" y="112">Hydrophilic head</text>
+    <text x="-120" y="226" font-size="15">Hydrophobic</text>
+    <text x="-120" y="244" font-size="15">tails</text>
+    <text x="170" y="358">Integral protein</text>
+    <text x="400" y="62">Channel protein</text>
+    <text x="560" y="368">Peripheral protein</text>
+    <text x="70" y="348">Cholesterol</text>
+    <text x="100" y="58">Glycoprotein</text>
+    <text x="612" y="64">Glycolipid</text>
+  </g>
+</svg>

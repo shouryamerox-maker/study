@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" font-family="Inter, Arial, sans-serif" font-size="17" role="img" aria-labelledby="t d">
+  <title id="t">Labelled diagram of an animal cell</title>
+  <desc id="d">A schematic animal cell showing the plasma membrane, cytoplasm, nucleus with nucleolus and nuclear envelope, rough and smooth endoplasmic reticulum, ribosomes, Golgi apparatus, mitochondria, lysosome, small vacuole and centrioles.</desc>
+  <rect width="760" height="500" fill="#ffffff"/>
+  <!-- cell body -->
+  <path d="M190 95 C300 40 470 45 560 110 C640 165 650 300 585 380 C510 460 330 470 235 410 C140 350 105 175 190 95 Z" fill="#fbeee4" stroke="#a85c40" stroke-width="5"/>
+  <!-- nucleus -->
+  <circle cx="370" cy="250" r="78" fill="#e7d3f1" stroke="#7c4f9a" stroke-width="4"/>
+  <circle cx="370" cy="250" r="70" fill="none" stroke="#7c4f9a" stroke-width="1.5" stroke-dasharray="5 6"/>
+  <circle cx="385" cy="240" r="24" fill="#9b6bb8"/>
+  <!-- rough ER -->
+  <g fill="none" stroke="#3f6d75" stroke-width="5" stroke-linecap="round">
+    <path d="M455 205 C485 190 500 215 490 240 C480 262 505 280 520 270"/>
+    <path d="M462 228 C478 222 482 238 476 252"/>
+  </g>
+  <g fill="#2e2420"><circle cx="470" cy="197" r="3.5"/><circle cx="492" cy="208" r="3.5"/><circle cx="497" cy="230" r="3.5"/><circle cx="487" cy="252" r="3.5"/><circle cx="503" cy="270" r="3.5"/><circle cx="520" cy="262" r="3.5"/></g>
+  <!-- smooth ER -->
+  <g fill="none" stroke="#4a7850" stroke-width="5" stroke-linecap="round"><path d="M290 340 C305 320 330 345 345 325 C360 305 385 330 400 315"/><path d="M300 360 C320 345 340 365 360 350"/></g>
+  <!-- golgi -->
+  <g fill="none" stroke="#b07830" stroke-width="6" stroke-linecap="round"><path d="M250 175 C275 160 300 160 320 172"/><path d="M245 192 C272 177 300 177 322 189"/><path d="M244 209 C270 195 298 195 318 206"/></g>
+  <circle cx="330" cy="168" r="5" fill="#b07830"/><circle cx="234" cy="214" r="5" fill="#b07830"/>
+  <!-- mitochondria -->
+  <g><ellipse cx="520" cy="345" rx="42" ry="20" fill="#f6cdb4" stroke="#c85040" stroke-width="3"/><path d="M488 345 l10 -12 l10 24 l10 -24 l10 24 l10 -24 l10 24 l8 -12" fill="none" stroke="#c85040" stroke-width="2"/></g>
+  <g transform="rotate(-30 250 270)"><ellipse cx="250" cy="270" rx="36" ry="17" fill="#f6cdb4" stroke="#c85040" stroke-width="3"/><path d="M222 270 l9 -10 l9 20 l9 -20 l9 20 l9 -20 l8 10" fill="none" stroke="#c85040" stroke-width="2"/></g>
+  <!-- lysosome -->
+  <circle cx="460" cy="130" r="17" fill="#f7e58a" stroke="#9a7a14" stroke-width="3"/>
+  <!-- vacuole -->
+  <circle cx="550" cy="180" r="15" fill="#e3f0f5" stroke="#5b8aa0" stroke-width="2.5"/>
+  <!-- centrioles -->
+  <g fill="#7a6f63"><rect x="420" y="355" width="30" height="11" rx="3"/><rect x="452" y="345" width="11" height="30" rx="3"/></g>
+  <!-- free ribosomes -->
+  <g fill="#2e2420"><circle cx="300" cy="120" r="3.5"/><circle cx="420" cy="100" r="3.5"/><circle cx="230" cy="330" r="3.5"/><circle cx="560" cy="250" r="3.5"/><circle cx="400" cy="420" r="3.5"/></g>
+
+  <!-- labels -->
+  <g stroke="#2e2420" stroke-width="1.4" fill="none">
+    <path d="M178 120 L60 70"/><path d="M370 172 L370 30"/><path d="M385 240 L690 44"/>
+    <path d="M520 240 L700 120"/><path d="M290 340 L60 430"/><path d="M250 175 L60 190"/>
+    <path d="M540 345 L700 330"/><path d="M460 130 L530 40"/><path d="M563 180 L700 200"/>
+    <path d="M450 362 L640 455"/><path d="M230 330 L60 330"/><path d="M220 280 L60 260"/><path d="M440 260 L700 265"/>
+  </g>
+  <g fill="#2e2420">
+    <text x="12" y="62">Plasma membrane</text>
+    <text x="330" y="22">Nucleus</text>
+    <text x="664" y="36">Nucleolus</text>
+    <text x="604" y="110">Rough ER</text>
+    <text x="12" y="452">Smooth ER</text>
+    <text x="12" y="182">Golgi apparatus</text>
+    <text x="634" y="322">Mitochondrion</text>
+    <text x="500" y="32">Lysosome</text>
+    <text x="634" y="218">Vacuole (small)</text>
+    <text x="600" y="478">Centrioles</text>
+    <text x="12" y="322">Ribosome (free)</text>
+    <text x="12" y="252">Cytoplasm</text>
+    <text x="604" y="290">Nuclear envelope</text>
+  </g>
+</svg>

@@ -4,5 +4,6 @@
  */
 import type { CourseContent } from "../src/lib/content/schema";
 import cProgramming from "./c-programming/course";
+import btt1102 from "./btt1102/course";
 
-export const courses: CourseContent[] = [cProgramming];
+export const courses: CourseContent[] = [cProgramming, btt1102];

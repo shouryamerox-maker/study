@@ -1,0 +1,128 @@
+import type { ChapterContent } from "../../../src/lib/content/schema";
+
+const ex = (id: string, title: string, prompt: string, solution: string, hint?: string) => ({
+  type: "exercise" as const,
+  id: `bio1-rev-${id}`,
+  kind: "concept" as const,
+  title,
+  prompt,
+  solution,
+  ...(hint ? { hint } : {}),
+});
+
+const chapter: ChapterContent = {
+  slug: "unit-1-revision",
+  title: "Unit 1 Revision and Practice",
+  summary: "Key definitions, a one-page summary, and descriptive practice questions with model answers for the whole of Unit 1.",
+  topics: [
+    {
+      slug: "revision",
+      title: "Revision",
+      lessons: [
+        {
+          slug: "unit-1-quick-revision",
+          title: "Unit 1 quick revision and important definitions",
+          summary: "Everything in Unit 1 on one page.",
+          estMinutes: 15,
+          blocks: [
+            { type: "objectives", items: ["Revise every Unit 1 topic quickly before an exam.", "Learn the key definitions word-perfect."] },
+            { type: "heading", text: "Important definitions" },
+            {
+              type: "table",
+              headers: ["Term", "Definition"],
+              rows: [
+                ["Biology", "Scientific study of living organisms — their structure, function, growth, origin, evolution and distribution."],
+                ["Organism", "An individual living creature."],
+                ["Adaptation", "Process of becoming adjusted to an environment; structural, physiological or behavioural traits that improve survival and reproduction."],
+                ["Metabolism", "The sum of all chemical reactions in a cell."],
+                ["Homeostasis", "Maintenance of a steady internal environment despite external changes."],
+                ["Gamete", "A haploid sex cell (sperm or egg)."],
+                ["Cell", "The smallest structural and functional unit of life."],
+                ["Organelle", "A specialised structure in a cell that performs a particular function."],
+                ["Selectively permeable", "Allows only certain substances to pass through."],
+                ["Diffusion", "Net movement of molecules from higher to lower concentration."],
+                ["Endocytosis", "Taking material into the cell by engulfing it in a fold of the plasma membrane."],
+                ["Nucleoid", "Region of a prokaryotic cell containing DNA, not enclosed by a membrane."],
+                ["Prokaryotic cell", "Cell without a true nucleus or membrane-bound organelles (bacteria, archaea)."],
+                ["Eukaryotic cell", "Cell with a true nucleus and membrane-bound organelles (plants, animals, fungi, protists)."],
+                ["Computational biology", "Use of computers, mathematics and statistics to study biological systems and data."],
+              ],
+            },
+            { type: "heading", text: "One-page summary" },
+            {
+              type: "recap",
+              items: [
+                "**Characteristics of life:** respond to environment, grow and develop, reproduce, metabolism and regulation, homeostasis, energy processing, made of cells, heredity.",
+                "**Levels:** organelle → cell → tissue → organ → organ system → organism → population → community → ecosystem → biosphere.",
+                "**Discovery:** Hooke 1665 (term “cell”, dead cork); Leeuwenhoek (first living cells); Brown 1831 (nucleus).",
+                "**Cell theory:** Schleiden 1838 (plants), Schwann 1839 (animals), Virchow 1855 “Omnis cellula e cellula” (Latin).",
+                "**Plasma membrane:** fluid mosaic model (Singer & Nicolson 1972); phospholipid bilayer with embedded proteins; selectively permeable.",
+                "**ER:** rough (ribosomes, proteins) and smooth (lipids, detoxification); absent in prokaryotes and mature mammalian RBCs.",
+                "**Ribosomes:** no membrane; protein synthesis; 70S in prokaryotes, 80S in eukaryotic cytoplasm.",
+                "**Cell wall:** cellulose (plants), chitin (fungi), peptidoglycan (bacteria); non-living, freely permeable; absent in animal cells.",
+                "**Plant vs animal:** plants have wall, chloroplasts, large vacuole, plasmodesmata, starch; animals have centrioles, glycogen.",
+                "**Prokaryotic vs eukaryotic:** nucleoid vs nucleus; no membrane-bound organelles vs many; circular vs linear DNA; binary fission vs mitosis.",
+                "**Computational biology:** biology + computer science + maths + statistics; applications in genomics, drugs, medicine, agriculture.",
+              ],
+            },
+            {
+              type: "callout",
+              variant: "warning",
+              title: "Common slide-related traps to avoid in exams",
+              md: "- Write **cellular respiration**, not “all organisms breathe”.\n- “Omnis cellula e cellula” is **Latin**.\n- In the fluid mosaic model proteins are **embedded**, not sandwiched.\n- The cell wall is a **non-living layer**, not “made of non-living cells”.\n- Transduction, conjugation and transformation are **gene transfer**, not cell division.\n- Fungal cell walls are **chitin**, not cellulose.",
+            },
+            { type: "heading", text: "Practice: definitions" },
+            ex("def-1", "Define homeostasis", "Define **homeostasis** and give one example. *(2 marks)*", "**Homeostasis** is the ability of an organism to maintain a **steady internal environment** (temperature, pH, chemical concentrations) within a narrow range despite changes in the external environment. **Example:** humans sweat to lose heat and keep body temperature near 37 °C (thermoregulation)."),
+            ex("def-2", "Define metabolism and organelle", "Define (a) **metabolism** and (b) **organelle**. *(2 marks)*", "(a) **Metabolism** is the sum of all the chemical reactions taking place in a cell or organism.\n\n(b) An **organelle** is a specialised structure within a cell that performs a specific function, e.g. the mitochondrion (energy release)."),
+            ex("def-3", "Define prokaryotic cell", "Define a **prokaryotic cell** and give two examples of prokaryotic organisms. *(2 marks)*", "A **prokaryotic cell** lacks a true (membrane-bound) nucleus and membrane-bound organelles; its DNA lies in the nucleoid. **Examples:** bacteria (e.g. *E. coli*) and archaea."),
+            { type: "heading", text: "Practice: short answers" },
+            ex("sa-1", "Postulates of cell theory", "State the three postulates of the classical **cell theory** and name the scientists associated with them. *(3 marks)*", "1. All living organisms are made of cells — **Schleiden (plants, 1838)** and **Schwann (animals, 1839)**.\n2. The cell is the basic structural and functional unit of life — Schleiden and Schwann.\n3. All cells arise from pre-existing cells — **Rudolf Virchow (1855)**, “Omnis cellula e cellula”."),
+            ex("sa-2", "Sexual vs asexual reproduction", "Give **three** differences between sexual and asexual reproduction. *(3 marks)*", "| Sexual | Asexual |\n|---|---|\n| Two parents | One parent |\n| Fusion of haploid gametes | No fusion of gametes |\n| Offspring genetically unique; increases variation | Offspring genetically identical to the parent |"),
+            ex("sa-3", "Functions of the plasma membrane", "List **three** functions of the plasma membrane. *(3 marks)*", "Any three:\n- Maintains the distinct composition of the cell (separates it from the surroundings).\n- Regulates the movement of molecules into and out of the cell (selectively permeable).\n- Allows diffusion of gases such as O₂ and CO₂.\n- Allows endocytosis — e.g. Amoeba engulfing food."),
+            ex("sa-4", "Rough vs smooth ER", "Distinguish between **rough ER** and **smooth ER** (any three points). *(3 marks)*", "| Rough ER | Smooth ER |\n|---|---|\n| Ribosomes attached | No ribosomes |\n| Synthesises proteins | Synthesises lipids |\n| Mostly flattened sacs (cisternae) | Mostly tubules; also detoxifies drugs and poisons |"),
+            { type: "heading", text: "Practice: compare and differentiate" },
+            ex("cmp-1", "Plant cell vs animal cell", "Give **five** differences between plant cells and animal cells. *(5 marks)*", "Any five: cell wall present vs absent; chloroplasts present vs absent; large permanent central vacuole vs small temporary vacuoles; tonoplast present vs absent; centrioles absent (in higher plants) vs present; plasmodesmata present vs absent; nucleus at periphery vs centre; storage as starch vs glycogen; usually larger vs smaller."),
+            ex("cmp-2", "Prokaryotic vs eukaryotic", "Tabulate **six** differences between prokaryotic and eukaryotic cells. *(6 marks)*", "| Prokaryotic | Eukaryotic |\n|---|---|\n| No true nucleus — nucleoid | True nucleus with nuclear membrane |\n| No membrane-bound organelles | Membrane-bound organelles present |\n| 70S ribosomes | 80S ribosomes |\n| Usually one circular chromosome | Several linear chromosomes |\n| Smaller (0.1–5 µm) | Larger (10–100 µm) |\n| Binary fission | Mitosis (and meiosis) |\n| Cell wall of peptidoglycan | Wall absent (animals), cellulose (plants), chitin (fungi) |"),
+            ex("cmp-3", "Population, community, ecosystem", "Differentiate between a **population**, a **community** and an **ecosystem** with one example each. *(3 marks)*", "- **Population:** all individuals of one species in an area — e.g. all the pine trees in a forest.\n- **Community:** all the populations of different species living in an area — e.g. all the plants and animals in that forest.\n- **Ecosystem:** a community together with its non-living environment — e.g. the forest's organisms plus its soil, water and climate."),
+            { type: "heading", text: "Practice: diagram questions" },
+            ex(
+              "dia-1",
+              "Label an animal cell",
+              "Draw a neat, labelled diagram of an **animal cell** showing at least **eight** parts. *(5 marks)* Compare with the animal-cell diagram in the lesson “Inside a cell”.",
+              "Labels expected: plasma membrane, cytoplasm, nucleus, nucleolus, nuclear envelope, mitochondrion, rough ER, smooth ER, ribosomes, Golgi apparatus, lysosome, centrioles. Marks are usually given for neatness, correct shapes (e.g. mitochondrion with inner folds) and correctly placed labels.",
+              "There is no cell wall and no chloroplast in an animal cell.",
+            ),
+            ex(
+              "dia-2",
+              "Fluid mosaic model",
+              "Draw and label the **fluid mosaic model** of the plasma membrane and explain why it is called “fluid” and “mosaic”. *(5 marks)*",
+              "Diagram: phospholipid bilayer (hydrophilic heads outward, hydrophobic tails inward), integral protein spanning the bilayer, channel protein, peripheral protein, cholesterol, glycoprotein and glycolipid on the outer surface.\n\n**Fluid** — lipids and many proteins move sideways within the layer, so it behaves like a flexible fluid. **Mosaic** — proteins are scattered through the lipid bilayer like tiles in a mosaic. Proposed by Singer and Nicolson (1972).",
+            ),
+            ex(
+              "dia-3",
+              "Identify the cell",
+              "A cell is observed with a **cell wall**, **no nucleus**, **circular DNA** in a nucleoid, **70S ribosomes** and a **flagellum**. Identify the type of cell and justify your answer. *(3 marks)*",
+              "It is a **prokaryotic (bacterial) cell**: it has no true nucleus (DNA in a nucleoid), circular DNA and 70S ribosomes, which are prokaryotic features. A cell wall and flagellum are common in bacteria.",
+            ),
+            { type: "heading", text: "Practice: long answers" },
+            ex(
+              "long-1",
+              "Characteristics of living organisms",
+              "Describe the **characteristics of living organisms** with suitable examples. *(10 marks)*",
+              "Structure your answer with a heading and an example for each:\n1. **Response to environment** — Mimosa pudica folds when touched; adaptations (structural, physiological, behavioural).\n2. **Reproduction** — sexual (two parents, gametes, variation) and asexual (one parent, identical offspring).\n3. **Growth and development** — directed by genes; tadpole → frog.\n4. **Regulation and metabolism** — sum of chemical reactions; organs regulate transport, blood flow.\n5. **Homeostasis** — steady internal state; thermoregulation in polar bears, sweating in humans.\n6. **Energy processing** — photosynthesis and cellular respiration (condor uses food energy for flight).\n7. **Made of cells** — cell is the basic unit.\n8. **Heredity** — traits passed via DNA.\nConclude: no single property defines life; living things show all of them together.",
+            ),
+            ex(
+              "long-2",
+              "Cell theory and organelles",
+              "Explain the **cell theory** and describe the structure and functions of the **plasma membrane**, **endoplasmic reticulum** and **ribosomes**. *(10 marks)*",
+              "- **Cell theory:** history (Hooke, Leeuwenhoek, Brown, Schleiden, Schwann, Virchow) and the postulates, plus modern additions.\n- **Plasma membrane:** fluid mosaic model, selective permeability, functions (composition, transport, diffusion, endocytosis).\n- **ER:** network of membranes; RER (ribosomes, proteins) vs SER (lipids, detoxification); transport to Golgi.\n- **Ribosomes:** rRNA + protein, no membrane, protein synthesis, 70S vs 80S, free vs ER-bound.\nInclude a labelled diagram of the membrane for full marks.",
+            ),
+          ],
+          practice: [],
+        },
+      ],
+    },
+  ],
+};
+
+export default chapter;

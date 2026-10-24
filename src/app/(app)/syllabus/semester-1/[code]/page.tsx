@@ -5,6 +5,7 @@ import { requirePageUser } from "@/server/auth/guards";
 import { findSubject, shardaCseAiml2026 as programme, type ExamCoverage, type SyllabusSubject } from "@content/syllabus/sharda-btech-cse-aiml-2026";
 import { PageHeader, cn } from "@/components/ui";
 import { PdfRef, SubjectIcon, unitsLabel } from "@/components/syllabus/SyllabusBits";
+import { semester1Academics } from "@content/syllabus/sharda-btech-cse-aiml-2026-outcomes";
 
 const SLUG = "semester-1";
 
@@ -53,6 +54,7 @@ export default async function SubjectSyllabus({ params }: { params: Promise<{ co
   const mid = new Set(s.midSem?.units ?? []);
   const end = new Set(s.endSem?.units ?? []);
   const noCoverage = !s.midSem && !s.endSem;
+  const academics = semester1Academics[s.code];
   const idx = semester.subjects.findIndex((x) => x.code === s.code);
   const prev = semester.subjects[idx - 1];
   const next = semester.subjects[idx + 1];
@@ -131,6 +133,43 @@ export default async function SubjectSyllabus({ params }: { params: Promise<{ co
           ))}
         </div>
       </section>
+
+      {academics && (
+        <section aria-labelledby="co-h" className="mt-10">
+          <h2 id="co-h" className="text-[16px] font-semibold">
+            Course outcomes
+          </h2>
+          <p className="mb-3 mt-0.5 text-[12.5px] text-muted">What you should be able to do after this course. Official wording first, then a simple explanation (not official text).</p>
+          <ol className="divide-y divide-divider overflow-hidden rounded-[12px] border border-border bg-surface">
+            {academics.outcomes.map((o) => (
+              <li key={o.id} className="px-5 py-3.5">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-mono text-[12.5px] font-semibold text-primary">{/^d/.test(o.id) ? `Outcome ${o.id}` : o.id}</span>
+                  {o.level && <span className="text-[11.5px] text-faint">{o.level}</span>}
+                  {o.kind === "lab" && <span className="rounded-[5px] bg-divider/70 px-1.5 text-[11px] text-muted">Lab only</span>}
+                </div>
+                <p className="mt-1 text-[14px] leading-relaxed">{o.statement}</p>
+                <p className="mt-1 text-[13px] text-muted">
+                  <span className="font-medium text-success">In simple words:</span> {o.simple}
+                </p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-1.5 text-right">
+            <PdfRef pages={academics.outcomesPages} />
+          </p>
+
+          <h2 className="mt-8 text-[16px] font-semibold">Course objectives</h2>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] leading-relaxed">
+            {academics.objectives.map((o, i) => (
+              <li key={i}>{o}</li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-right">
+            <PdfRef pages={academics.objectivesPage} />
+          </p>
+        </section>
+      )}
 
       {s.sourceNotes.length > 0 && (
         <section className="mt-8 rounded-[10px] bg-sidebar px-4 py-3" aria-labelledby="notes-h">

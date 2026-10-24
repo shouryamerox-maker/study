@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-130 0 890 420" font-family="Inter, Arial, sans-serif" font-size="17" role="img" aria-labelledby="t d">
+  <title id="t">Labelled diagram of a prokaryotic (bacterial) cell</title>
+  <desc id="d">A rod-shaped bacterial cell showing the capsule, cell wall, plasma membrane, cytoplasm, nucleoid containing circular DNA, a plasmid, 70S ribosomes, pili and a flagellum. There is no nucleus and no membrane-bound organelles.</desc>
+  <rect x="-130" width="890" height="420" fill="#ffffff"/>
+  <!-- flagellum -->
+  <path d="M585 210 C625 180 650 250 690 215 C715 192 730 230 750 215" fill="none" stroke="#7a6f63" stroke-width="4" stroke-linecap="round"/>
+  <!-- pili -->
+  <g stroke="#7a6f63" stroke-width="2.5" stroke-linecap="round"><path d="M260 120 L250 92"/><path d="M330 112 L330 82"/><path d="M420 112 L428 82"/><path d="M500 118 L515 90"/><path d="M300 300 L292 330"/><path d="M450 302 L460 332"/></g>
+  <!-- capsule, wall, membrane -->
+  <rect x="160" y="112" width="440" height="196" rx="98" fill="#f3ede4" stroke="#b07830" stroke-width="3" stroke-dasharray="7 5"/>
+  <rect x="172" y="124" width="416" height="172" rx="86" fill="#e4dcd0" stroke="#7a6f63" stroke-width="7"/>
+  <rect x="182" y="134" width="396" height="152" rx="76" fill="#fbf6ee" stroke="#a85c40" stroke-width="3"/>
+  <!-- nucleoid with circular DNA -->
+  <path d="M330 200 C320 160 400 150 420 185 C445 225 380 255 350 235 C320 215 355 185 380 200 C400 212 385 228 370 220" fill="none" stroke="#7c4f9a" stroke-width="4"/>
+  <!-- plasmid -->
+  <circle cx="500" cy="190" r="16" fill="none" stroke="#7c4f9a" stroke-width="3"/>
+  <!-- ribosomes -->
+  <g fill="#2e2420"><circle cx="250" cy="180" r="4"/><circle cx="270" cy="240" r="4"/><circle cx="460" cy="250" r="4"/><circle cx="530" cy="240" r="4"/><circle cx="300" cy="165" r="4"/><circle cx="470" cy="160" r="4"/></g>
+
+  <g stroke="#2e2420" stroke-width="1.4" fill="none">
+    <path d="M170 150 L-10 60"/><path d="M178 210 L-10 200"/><path d="M190 255 L-10 300"/><path d="M380 210 L380 30"/>
+    <path d="M510 180 L620 60"/><path d="M270 240 L-10 380"/><path d="M515 90 L560 30"/><path d="M700 210 L700 320"/><path d="M240 210 L-10 250"/>
+  </g>
+  <g fill="#2e2420">
+    <text x="-120" y="52">Capsule (in some bacteria)</text>
+    <text x="-120" y="192">Cell wall (peptidoglycan)</text>
+    <text x="-120" y="320">Plasma membrane</text>
+    <text x="300" y="22">Nucleoid — circular DNA</text>
+    <text x="600" y="52">Plasmid</text>
+    <text x="-120" y="402">70S ribosomes</text>
+    <text x="540" y="22">Pili</text>
+    <text x="640" y="342">Flagellum</text>
+    <text x="-120" y="270">Cytoplasm</text>
+  </g>
+  <text x="380" y="408" text-anchor="middle" fill="#7a6f63" font-size="15">No nucleus · no membrane-bound organelles</text>
+</svg>

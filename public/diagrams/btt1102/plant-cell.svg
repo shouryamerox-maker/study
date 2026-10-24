@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" font-family="Inter, Arial, sans-serif" font-size="17" role="img" aria-labelledby="t d">
+  <title id="t">Labelled diagram of a plant cell</title>
+  <desc id="d">A schematic rectangular plant cell showing the cell wall, plasma membrane, a large central vacuole with tonoplast, a nucleus pushed to the side, chloroplasts, mitochondria, endoplasmic reticulum, Golgi apparatus, ribosomes and plasmodesmata.</desc>
+  <rect width="760" height="500" fill="#ffffff"/>
+  <!-- cell wall and membrane -->
+  <rect x="170" y="70" width="420" height="360" rx="18" fill="#dcebd3" stroke="#4a7850" stroke-width="12"/>
+  <rect x="184" y="84" width="392" height="332" rx="12" fill="#f4f8ec" stroke="#a85c40" stroke-width="3"/>
+  <!-- plasmodesmata gaps -->
+  <g stroke="#ffffff" stroke-width="5"><path d="M164 200 L178 200"/><path d="M164 300 L178 300"/><path d="M582 250 L596 250"/></g>
+  <g stroke="#4a7850" stroke-width="2"><path d="M160 200 L182 200"/><path d="M160 300 L182 300"/><path d="M578 250 L600 250"/></g>
+  <!-- central vacuole -->
+  <rect x="300" y="120" width="230" height="250" rx="40" fill="#e3f0f5" stroke="#3f6d75" stroke-width="3"/>
+  <!-- nucleus at periphery -->
+  <circle cx="240" cy="150" r="42" fill="#e7d3f1" stroke="#7c4f9a" stroke-width="4"/>
+  <circle cx="248" cy="144" r="13" fill="#9b6bb8"/>
+  <!-- chloroplasts -->
+  <g>
+    <ellipse cx="225" cy="300" rx="34" ry="17" fill="#8fbf6f" stroke="#3d6b2c" stroke-width="3"/>
+    <g fill="#3d6b2c"><rect x="205" y="293" width="9" height="14" rx="2"/><rect x="220" y="293" width="9" height="14" rx="2"/><rect x="235" y="293" width="9" height="14" rx="2"/></g>
+    <ellipse cx="555" cy="390" rx="0" ry="0"/>
+    <ellipse cx="440" cy="395" rx="32" ry="15" fill="#8fbf6f" stroke="#3d6b2c" stroke-width="3"/>
+    <g fill="#3d6b2c"><rect x="422" y="389" width="8" height="12" rx="2"/><rect x="436" y="389" width="8" height="12" rx="2"/><rect x="450" y="389" width="8" height="12" rx="2"/></g>
+  </g>
+  <!-- mitochondrion -->
+  <ellipse cx="250" cy="380" rx="28" ry="13" fill="#f6cdb4" stroke="#c85040" stroke-width="3"/>
+  <path d="M227 380 l7 -8 l7 16 l7 -16 l7 16 l7 -16 l6 8" fill="none" stroke="#c85040" stroke-width="2"/>
+  <!-- ER and golgi -->
+  <path d="M215 215 C235 200 255 225 275 210" fill="none" stroke="#3f6d75" stroke-width="4" stroke-linecap="round"/>
+  <g fill="#2e2420"><circle cx="224" cy="207" r="3"/><circle cx="246" cy="216" r="3"/><circle cx="266" cy="210" r="3"/></g>
+  <g fill="none" stroke="#b07830" stroke-width="5" stroke-linecap="round"><path d="M540 110 C555 100 570 100 580 108"/><path d="M538 124 C553 114 568 114 578 122"/></g>
+  <!-- free ribosomes -->
+  <g fill="#2e2420"><circle cx="210" cy="250" r="3"/><circle cx="280" cy="350" r="3"/><circle cx="560" cy="300" r="3"/></g>
+
+  <g stroke="#2e2420" stroke-width="1.4" fill="none">
+    <path d="M170 110 L50 60"/><path d="M190 180 L50 160"/><path d="M415 245 L690 80"/><path d="M300 330 L690 470"/>
+    <path d="M240 108 L240 30"/><path d="M250 144 L380 30"/><path d="M200 300 L50 300"/><path d="M250 380 L50 420"/>
+    <path d="M230 210 L50 230"/><path d="M570 104 L690 160"/><path d="M582 250 L610 250"/><path d="M280 350 L50 360"/>
+  </g>
+  <g fill="#2e2420">
+    <text x="10" y="52">Cell wall</text>
+    <text x="10" y="152">Plasma membrane</text>
+    <text x="604" y="72">Central vacuole</text>
+    <text x="604" y="494">Tonoplast</text>
+    <text x="196" y="22">Nucleus</text>
+    <text x="350" y="22">Nucleolus</text>
+    <text x="10" y="292">Chloroplast</text>
+    <text x="10" y="440">Mitochondrion</text>
+    <text x="10" y="222">Rough ER</text>
+    <text x="640" y="180">Golgi</text>
+    <text x="612" y="244" font-size="15">Plasmodesmata</text>
+    <text x="10" y="352">Ribosome</text>
+  </g>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" font-family="Inter, Arial, sans-serif" font-size="16" role="img" aria-labelledby="t d">
+  <title id="t">Levels of biological organisation</title>
+  <desc id="d">A ladder from small to large: organelle, cell, tissue, organ, organ system, organism, population, community, ecosystem, biosphere.</desc>
+  <rect width="760" height="300" fill="#ffffff"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#a85c40"/></marker></defs>
+  <g fill="#fbeee4" stroke="#a85c40" stroke-width="2">
+    <rect x="10" y="40" width="130" height="48" rx="10"/><rect x="160" y="40" width="130" height="48" rx="10"/><rect x="310" y="40" width="130" height="48" rx="10"/><rect x="460" y="40" width="130" height="48" rx="10"/><rect x="610" y="40" width="140" height="48" rx="10"/>
+  </g>
+  <g fill="#e7f0e6" stroke="#4a7850" stroke-width="2">
+    <rect x="610" y="190" width="140" height="48" rx="10"/><rect x="460" y="190" width="130" height="48" rx="10"/><rect x="310" y="190" width="130" height="48" rx="10"/><rect x="160" y="190" width="130" height="48" rx="10"/><rect x="10" y="190" width="130" height="48" rx="10"/>
+  </g>
+  <g stroke="#a85c40" stroke-width="2.5" marker-end="url(#a)"><path d="M140 64 H156"/><path d="M290 64 H306"/><path d="M440 64 H456"/><path d="M590 64 H606"/><path d="M680 88 V184"/><path d="M610 214 H594"/><path d="M460 214 H444"/><path d="M310 214 H294"/><path d="M160 214 H144"/></g>
+  <g fill="#2e2420" text-anchor="middle" font-weight="600">
+    <text x="75" y="69">Organelle</text><text x="225" y="69">Cell</text><text x="375" y="69">Tissue</text><text x="525" y="69">Organ</text><text x="680" y="69">Organ system</text>
+    <text x="680" y="219">Organism</text><text x="525" y="219">Population</text><text x="375" y="219">Community</text><text x="225" y="219">Ecosystem</text><text x="75" y="219">Biosphere</text>
+  </g>
+  <text x="380" y="26" text-anchor="middle" fill="#7a6f63" font-size="14">Inside one organism</text>
+  <text x="380" y="280" text-anchor="middle" fill="#7a6f63" font-size="14">Many organisms and their environment</text>
+</svg>

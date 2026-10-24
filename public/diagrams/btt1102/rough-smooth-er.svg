@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" font-family="Inter, Arial, sans-serif" font-size="17" role="img" aria-labelledby="t d">
+  <title id="t">Rough and smooth endoplasmic reticulum</title>
+  <desc id="d">Left: rough ER drawn as flattened, stacked sacs (cisternae) with ribosomes dotted on their outer surface, continuous with the nuclear envelope. Right: smooth ER drawn as branching tubules with no ribosomes.</desc>
+  <rect width="760" height="380" fill="#ffffff"/>
+  <!-- nucleus edge -->
+  <path d="M0 40 C60 120 60 260 0 340" fill="#e7d3f1" stroke="#7c4f9a" stroke-width="4"/>
+  <!-- RER cisternae -->
+  <g fill="#e3f0f5" stroke="#3f6d75" stroke-width="4">
+    <path d="M70 110 C140 70 260 70 330 110 C320 125 300 125 290 118 C230 90 160 92 100 122 C90 126 78 122 70 110 Z"/>
+    <path d="M75 175 C145 135 265 135 335 175 C325 190 305 190 295 183 C235 155 165 157 105 187 C95 191 83 187 75 175 Z"/>
+    <path d="M70 240 C140 200 260 200 330 240 C320 255 300 255 290 248 C230 220 160 222 100 252 C90 256 78 252 70 240 Z"/>
+  </g>
+  <g fill="#2e2420">
+    <circle cx="95" cy="100" r="4.5"/><circle cx="130" cy="86" r="4.5"/><circle cx="170" cy="78" r="4.5"/><circle cx="210" cy="76" r="4.5"/><circle cx="250" cy="80" r="4.5"/><circle cx="290" cy="90" r="4.5"/><circle cx="322" cy="104" r="4.5"/>
+    <circle cx="100" cy="165" r="4.5"/><circle cx="135" cy="151" r="4.5"/><circle cx="175" cy="143" r="4.5"/><circle cx="215" cy="141" r="4.5"/><circle cx="255" cy="145" r="4.5"/><circle cx="295" cy="155" r="4.5"/><circle cx="327" cy="169" r="4.5"/>
+    <circle cx="95" cy="230" r="4.5"/><circle cx="130" cy="216" r="4.5"/><circle cx="170" cy="208" r="4.5"/><circle cx="210" cy="206" r="4.5"/><circle cx="250" cy="210" r="4.5"/><circle cx="290" cy="220" r="4.5"/><circle cx="322" cy="234" r="4.5"/>
+  </g>
+  <!-- SER tubules -->
+  <g fill="none" stroke="#4a7850" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M430 110 C470 80 510 140 550 110 C590 80 630 130 670 105"/>
+    <path d="M470 100 C480 160 520 170 560 200 C600 230 640 210 690 240"/>
+    <path d="M440 230 C480 200 520 260 560 230"/>
+    <path d="M600 140 C610 180 590 210 560 230"/>
+  </g>
+  <g fill="none" stroke="#e7f0e6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M430 110 C470 80 510 140 550 110 C590 80 630 130 670 105"/>
+    <path d="M470 100 C480 160 520 170 560 200 C600 230 640 210 690 240"/>
+    <path d="M440 230 C480 200 520 260 560 230"/>
+    <path d="M600 140 C610 180 590 210 560 230"/>
+  </g>
+
+  <g stroke="#2e2420" stroke-width="1.4" fill="none"><path d="M210 76 L210 30"/><path d="M180 255 L180 300"/><path d="M28 80 L44 34"/><path d="M640 120 L700 60"/></g>
+  <g fill="#2e2420">
+    <text x="160" y="24">Ribosomes on surface</text>
+    <text x="100" y="322">Rough ER — flattened sacs (cisternae)</text>
+    <text x="4" y="26" font-size="14">Nuclear envelope</text>
+    <text x="560" y="52">Smooth ER — tubules,</text>
+    <text x="560" y="72">no ribosomes</text>
+  </g>
+  <text x="200" y="350" text-anchor="middle" fill="#3f6d75" font-size="15" font-weight="600">ROUGH ER: proteins</text>
+  <text x="560" y="330" text-anchor="middle" fill="#4a7850" font-size="15" font-weight="600">SMOOTH ER: lipids, detoxification</text>
+</svg>

@@ -253,9 +253,15 @@ export function LessonBlock({ block, index, lessonId, runnable }: { block: Block
     case "image":
       return (
         <figure>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={block.src} alt={block.alt} className="mx-auto max-h-[480px] rounded-[10px] border border-border" loading="lazy" />
-          {block.caption && <figcaption className="mt-1.5 text-center text-[12.5px] text-muted">{block.caption}</figcaption>}
+          <a href={block.src} target="_blank" rel="noreferrer" title="Open full size" data-no-hl>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={block.src} alt={block.alt} className="mx-auto w-full max-w-[760px] rounded-[10px] border border-border bg-white" loading="lazy" />
+          </a>
+          {block.caption && (
+            <figcaption className="mt-1.5 text-center text-[12.5px] text-muted">
+              {block.caption} <span className="text-faint">· tap to enlarge</span>
+            </figcaption>
+          )}
         </figure>
       );
     case "diagram":
